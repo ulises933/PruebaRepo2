@@ -1,2 +1,5 @@
 fastapi
-uvicorn
+hypercorn
+SQLAlchemy
+SQLAlchemy-Utils
+pymssql
