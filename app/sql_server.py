@@ -2,9 +2,9 @@ from sqlalchemy import create_engine, text
 from app.env_variables import DB_USER, DB_PASS, DB_HOST, DB_PORT
 
 
-class SQLServerOperations:
+class SQLOperations:
 
-    def __init__(self, database):
+    def __init__(self, catalog):
         server = f'{DB_HOST}:{DB_PORT}' if DB_PORT else DB_HOST
         self.connection_string = f"mssql+pyodbc://{DB_USER}:{DB_PASS}@{server}/{database}"
         self.engine = create_engine(self.connection_string)
@@ -17,7 +17,7 @@ class SQLServerOperations:
             result = conn.execute(text(query), params)
             return [dict(row) for row in result.fetchall()]
 
-    def execute_simple_inser(self, table: str, columns: str, values: str):
+    def execute_simple_insert(self, table: str, columns: str, values: str):
         return self.execute_non_query(f'INSERT INTO {table} ({columns}) VALUES ({values})')
 
     def execute_non_query(self, query, params=None):
