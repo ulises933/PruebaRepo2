@@ -12,7 +12,7 @@ class SQLOperations:
 
     def execute_query(self, modelo: Base, *filters, page_size: int = 10, page_number: int = 1,
                       order_by: str = None):
-        offset_value = (page_number - 1) * page_size
+        offset_value = (page_number - 1) * page_size if page_size and page_number else None
         session = self._create_session()
         results = (
             session.query(modelo)
@@ -32,12 +32,6 @@ class SQLOperations:
     def update_record(self, modelo: Base, *filters, **updated_data):
         session = self._create_session()
         session.query(modelo).filter(*filters).update(**updated_data)
-        self._commit_close_session(session)
-
-    def delete_record(self, modelo: Base, *filters):
-        session = self._create_session()
-        result = session.query(modelo).filter(*filters).first()
-        session.delete(result)
         self._commit_close_session(session)
 
     def _create_session(self):
