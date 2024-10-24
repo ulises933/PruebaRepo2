@@ -7,8 +7,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DB_HOST=host
-      - DB_PORT=port
-      - DB_USER=user
-      - DB_PASS=pass
+      - TRINO_HOST=host
+      - TRINO_PORT=port
+      - TRINO_USER=user
+      - TRINO_PASS=pass
 

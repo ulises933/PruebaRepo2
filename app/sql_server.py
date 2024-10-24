@@ -4,7 +4,7 @@ from app.env_variables import DB_USER, DB_PASS, DB_HOST, DB_PORT
 
 class SQLOperations:
 
-    def __init__(self, catalog):
+    def __init__(self, database):
         server = f'{DB_HOST}:{DB_PORT}' if DB_PORT else DB_HOST
         self.connection_string = f"mssql+pyodbc://{DB_USER}:{DB_PASS}@{server}/{database}"
         self.engine = create_engine(self.connection_string)
