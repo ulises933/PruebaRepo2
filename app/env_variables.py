@@ -10,3 +10,4 @@ TRINO_PORT = os.getenv('TRINO_PORT')
 TRINO_USER = os.getenv('TRINO_USER')
 TRINO_PASS = os.getenv('TRINO_PASS')
 
+LOGGING_NAME = os.getenv('LOGGING_NAME')

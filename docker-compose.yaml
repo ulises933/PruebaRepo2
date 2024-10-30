@@ -11,4 +11,5 @@ services:
       - TRINO_PORT=port
       - TRINO_USER=user
       - TRINO_PASS=pass
+      - LOGGING_NAME=app_name
 
