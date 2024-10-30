@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  web:
+    build: .
+    command: hypercorn app.main:app --bind 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    environment:
+      - TRINO_HOST=host
+      - TRINO_PORT=port
+      - TRINO_USER=user
+      - TRINO_PASS=pass
+      - LOGGING_NAME=app_name
+

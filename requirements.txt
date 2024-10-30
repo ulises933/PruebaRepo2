@@ -1,0 +1,7 @@
+fastapi
+hypercorn
+SQLAlchemy
+SQLAlchemy-Utils
+pymssql
+dicttoxml
+google-cloud-logging
