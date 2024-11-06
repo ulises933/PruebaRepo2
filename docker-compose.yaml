@@ -12,7 +12,7 @@ services:
       - TRINO_USER=user
       - TRINO_PASS=pass
       - LOGGING_NAME=app_name
-      - X_API_KEY=KjtUaK1NrTrVG6wARGL0wt0V5iVgGmRH
-      - IS_VIRTUAL_HOST=intds4.test.apimanagement.us10.hana.ondemand.com
-      - IS_VIRTUAL_PORT=443
+      - X_API_KEY=productapikey
+      - IS_VIRTUAL_HOST=proxyvirtualhost
+      - IS_VIRTUAL_PORT=proxyvirtualport
 
