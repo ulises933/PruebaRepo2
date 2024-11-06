@@ -10,8 +10,10 @@ from app.bussiness_logic.endpoints import business_logic_router
 from app.exception import exception_handler, DoesNotExist, does_not_exist_handler
 from app.env_variables import LOGGING_NAME
 
-logging_client = gcp_logging.Client()
-logging_client.setup_logging(name=LOGGING_NAME)
+#Lines 14 y 15 will be commented to avoid the unexpected expection while client tries to authenticate through GCLOUD at container startup
+#If is needed this could be uncommented.
+#logging_client = gcp_logging.Client()
+#logging_client.setup_logging(name=LOGGING_NAME)
 
 app = FastAPI()
 app.root_path = "/"
