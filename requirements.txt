@@ -5,3 +5,4 @@ SQLAlchemy-Utils
 pymssql
 dicttoxml
 google-cloud-logging
+requests

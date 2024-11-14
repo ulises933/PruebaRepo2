@@ -12,4 +12,7 @@ services:
       - TRINO_USER=user
       - TRINO_PASS=pass
       - LOGGING_NAME=app_name
+      - X_API_KEY=productapikey
+      - IS_VIRTUAL_HOST=proxyvirtualhost
+      - IS_VIRTUAL_PORT=proxyvirtualport
 
