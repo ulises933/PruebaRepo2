@@ -1,4 +1,4 @@
-import logging
+import logging as log
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,10 +10,12 @@ from app.bussiness_logic.endpoints import business_logic_router
 from app.exception import exception_handler, DoesNotExist, does_not_exist_handler
 from app.env_variables import LOGGING_NAME
 
-#Lines 14 y 15 will be commented to avoid the unexpected expection while client tries to authenticate through GCLOUD at container startup
-#If is needed this could be uncommented.
-#logging_client = gcp_logging.Client()
-#logging_client.setup_logging(name=LOGGING_NAME)
+#Add handling error
+try:
+    logging_client = gcp_logging.Client()
+    logging_client.setup_logging(name=LOGGING_NAME)
+except Exception as e:
+   log.warning(e)
 
 app = FastAPI()
 app.root_path = "/"
