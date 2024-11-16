@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.env_variables import TRINO_USER, TRINO_PASS, TRINO_HOST, TRINO_PORT
-from bussiness_logic.db_models import Base
+from app.bussiness_logic.db_models import Base
 
 
 class SQLOperations:
