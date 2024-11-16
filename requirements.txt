@@ -2,6 +2,8 @@ fastapi
 hypercorn
 SQLAlchemy
 SQLAlchemy-Utils
+sqlalchemy-trino
+pandas
 pymssql
 dicttoxml
 google-cloud-logging
