@@ -7,3 +7,4 @@ pandas
 pymssql
 dicttoxml
 google-cloud-logging
+requests
