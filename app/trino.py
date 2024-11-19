@@ -1,7 +1,9 @@
-from sqlalchemy import create_engine, text
+import pandas as pd
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
 from app.env_variables import TRINO_USER, TRINO_PASS, TRINO_HOST, TRINO_PORT
-from bussiness_logic.db_models import Base
+from app.bussiness_logic.db_models import Base
 
 
 class SQLOperations:
@@ -24,11 +26,40 @@ class SQLOperations:
         :param order_by: Campo por el cual se va a ordenar los resultados
         :return:
         '''
+        query, session = self._get_query_and_session(filters, joins, modelo, order_by, page_number, page_size)
+
+        results = query.all()
+
+        session.close()
+        return results
+
+    def execute_query_df(self, modelo: Base, *filters, joins=None, page_size: int = None, page_number: int = None,
+                         order_by: str = None):
+        '''
+        Similar to execute_query but returns a pandas DataFrame instead of ORM objects
+
+        :param modelo: Database model to query
+        :param filters: Filter conditions as positional arguments, e.g.:
+                       modelo_1.columna_1 == 5, modelo_1.columna_2 > 0
+        :param joins: List of tuples with joins (model, condition, join_type), e.g.:
+                     (modelo_2, modelo_1.columna_3 == modelo_2.columna_1, 'inner')
+        :param page_size: Number of results per page
+        :param page_number: Page number
+        :param order_by: Field to order results by
+        :return: pandas DataFrame with query results
+        '''
+        query, session = self._get_query_and_session(filters, joins, modelo, order_by, page_number, page_size)
+
+        # Convert to pandas DataFrame
+        df = pd.read_sql(query.statement, self.engine)
+        session.close()
+        return df
+
+    def _get_query_and_session(self, filters, joins, modelo, order_by, page_number, page_size):
         joins = joins or []
         offset_value = (page_number - 1) * page_size if page_size and page_number else None
         session = self._create_session()
         query = session.query(modelo)
-
         for join_info in joins:
             if isinstance(join_info, tuple):
                 table, condition, join_type = join_info
@@ -38,15 +69,13 @@ class SQLOperations:
                     query = query.join(table, condition)
             else:
                 query = query.join(join_info)
-
-        results = (
+        query = (
             query.filter(*filters)
             .order_by(order_by)
             .offset(offset_value)
             .limit(page_size)
-        ).all()
-        session.close()
-        return results
+        )
+        return query, session
 
     def insert_record(self, modelo: Base):
         session = self._create_session()
