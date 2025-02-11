@@ -1,35 +1,59 @@
-from fastapi import APIRouter, Request
-
-from app.bussiness_logic.delete_business_logic import delete_obj
-from app.bussiness_logic.get_all_business_logic import get_all_objs
-from app.bussiness_logic.get_businesss_logic import get_obj
-from app.bussiness_logic.post_business_logic import create_obj, Obj
-from app.bussiness_logic.put_business_logic import update_obj
-from app.xm_json_response import JsonOrXmlResponse
+from fastapi import APIRouter, Request, Depends
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
+from .dependencies import get_sap_api_service, get_factura_tracking_service
+from .sap_api_service import SAPApiService
+from .factura_tracking_service import FacturaTrackingService
+from pydantic import BaseModel
+from typing import List
+from app.presentation.factura_view_formatter import FacturaViewFormatter
 
 business_logic_router = APIRouter()
+templates = Jinja2Templates(directory="app/templates")
 
+@business_logic_router.get("/", response_class=HTMLResponse)
+async def home(
+    request: Request,
+    sap_service: SAPApiService = Depends(get_sap_api_service),
+    factura_service: FacturaTrackingService = Depends(get_factura_tracking_service)
+):
+    # Obtener facturas de SAP
+    facturas_sap = await sap_service.get_facturas()
+    
+    # Procesar facturas en el tracking
+    tracking_data = []
+    for factura in facturas_sap["A_BillingDocumentType"]:
+        tracking = await factura_service.procesar_factura(factura, "usuario_test")
+        tracking_data.append(tracking)
+    
+    # Formatear para la vista
+    facturas_procesadas = await FacturaViewFormatter.format_facturas_list(
+        facturas_sap, 
+        tracking_data
+    )
+    
+    return templates.TemplateResponse(
+        "facturas_comisionables.html",
+        {"request": request, "facturas": facturas_procesadas}
+    )
 
-@business_logic_router.get("/objs/")
-async def get_all_objs_url(request: Request, page_size=10, page_number=1):
-    return JsonOrXmlResponse(get_all_objs(page_size, page_number), request)
+class Factura(BaseModel):
+    id: str
+    comisionable: bool
 
+class FacturasRequest(BaseModel):
+    facturas: List[Factura]
 
-@business_logic_router.get("/objs/{path_param}")
-async def get_obj_url(request: Request, path_param: int, query_param: str = None, page_size=10, page_number=1):
-    return JsonOrXmlResponse(get_obj(path_param, query_param), request)
-
-
-@business_logic_router.post("/objs/")
-async def create_obj_url(request: Request, obj: Obj):
-    return JsonOrXmlResponse(create_obj(obj), request)
-
-
-@business_logic_router.put("/objs/{path_param}")
-async def update_obj_url(request: Request, path_param: int, obj: Obj):
-    return JsonOrXmlResponse(update_obj(path_param, obj), request)
-
-
-@business_logic_router.delete("/objs/{path_param}")
-async def delete_obj_url(request: Request, path_param: str):
-    return JsonOrXmlResponse(delete_obj(path_param), request)
+@business_logic_router.post("/guardar_cambios")
+async def guardar_cambios(
+    request: FacturasRequest,
+    factura_service: FacturaTrackingService = Depends(get_factura_tracking_service)
+):
+    for factura in request.facturas:
+        factura_service.actualizar_estado_factura(
+            factura.id,
+            factura.comisionable,
+            "usuario_test"
+        )
+    
+    return {"mensaje": "Cambios guardados correctamente"}

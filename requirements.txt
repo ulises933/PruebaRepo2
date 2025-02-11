@@ -12,3 +12,8 @@ dicttoxml
 google-cloud-logging
 pyodbc
 requests
+uvicorn
+jinja2
+aiohttp
+python-multipart
+python-dotenv

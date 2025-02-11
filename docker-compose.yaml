@@ -6,7 +6,10 @@ services:
     command: hypercorn app.main:app --bind 0.0.0.0:8000
     ports:
       - "8000:8000"
+    volumes:
+      - ./data:/code/app/data
     environment:
+      - PYTHONUNBUFFERED=1 #
       - TRINO_HOST=host
       - TRINO_PORT=port
       - TRINO_USER=user

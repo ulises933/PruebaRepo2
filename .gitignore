@@ -48,3 +48,19 @@ Thumbs.db
 *.mov
 *.wmv
 
+.env
+
+# Python Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Other common Python ignores
+__pycache__/
+*.pyc
+
+# Local Docker configuration
+.dockerignore
+
+# database
+data/
