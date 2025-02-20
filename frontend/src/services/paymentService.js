@@ -1,9 +1,12 @@
 import appConfig from '../config/appConfig'
 
-export async function getPagos() {
+/**
+ * Retrieves payment data from the backend (pagos).
+ */
+export async function getPayments() {
   const response = await fetch(`${appConfig.apiBaseUrl}/pagos`)
   if (!response.ok) {
-    throw new Error('Error al obtener pagos')
+    throw new Error('Error fetching payments')
   }
   return response.json()
 }
