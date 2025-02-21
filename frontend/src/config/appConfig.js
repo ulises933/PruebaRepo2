@@ -1,10 +1,9 @@
-
 /**
  * Global configuration file to store environment-specific variables.
  * Changing apiBaseUrl here will allow easy switching between local, staging, or production APIs.
  */
 const appConfig = {
-  apiBaseUrl: 'http://localhost:3001' 
-}
+  apiBaseUrl: "http://localhost:3001",
+};
 
-export default appConfig
+export default appConfig;
