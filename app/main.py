@@ -9,6 +9,10 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from app.bussiness_logic.endpoints import business_logic_router
 from app.exception import exception_handler, DoesNotExist, does_not_exist_handler
 from app.env_variables import LOGGING_NAME
+from app.database import engine
+from app.bussiness_logic.db_models import Base
+
+Base.metadata.create_all(bind=engine)
 
 #Add handling error
 try:

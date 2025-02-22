@@ -15,6 +15,21 @@ logging_level_selector = {
     'FATAL': logging.fatal
 }
 
+class BillingDocumentOutOfBillingCycleError(Exception):
+    def __init__(self, id:int):
+        super().__init__(f"The billing document with id={id} is out of the current billing cycle")
+
+class BillingDocumentDoesNotExistError(Exception):
+    def __init__(self,id:int):
+        super().__init__(f"No existe una factura con id={id}")
+
+class BillingCycleDoesNotExistError(Exception):
+    def __init__(self,message:str):
+        super().__init__(message)
+
+class ClosedBillingCycleError(Exception):
+    def __init__(self, message:str):
+        super().__init__(message)
 
 class DoesNotExist(Exception):
     pass
