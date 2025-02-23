@@ -1,45 +1,43 @@
-from typing import Dict
+from typing import Dict, List, Tuple
 from sqlalchemy.orm import Session
-from .db_models import FacturaTracking
+from .db_models import FacturaTracking, EstatusFactura
 from .legacy_system_service import LegacySystemService
 from datetime import datetime
+
+from app.exception import BillingDocumentDoesNotExistError
 
 class FacturaTrackingService:
     def __init__(self, db: Session, legacy_system_service: LegacySystemService):
         self.db = db
         self.legacy_system_service = legacy_system_service
+    def obtener_facturas_comisionables(self) -> FacturaTracking:
+        return self.db.query(FacturaTracking).order_by(FacturaTracking.id_corte.desc(),FacturaTracking.id.asc()).all()
 
-    def actualizar_estado_factura(self, billing_document: str, comisionable: bool, usuario: str) -> FacturaTracking:
-        factura = self.db.query(FacturaTracking).filter_by(billing_document=billing_document).first()
-        
+    def obtener_facturas_comisionables_por_id_corte(self, id_corte: int) -> FacturaTracking:
+        #TODO: decidir si se muestran solo facturas pagables en periodos pasados
+        return self.db.query(FacturaTracking).filter_by(id_corte=id_corte).all()
+
+    def actualizar_estado_factura(self, id: int, estatus: EstatusFactura, usuario: str) -> FacturaTracking:
+        factura = self.db.query(FacturaTracking).get(id)
+
         if not factura:
-            factura = FacturaTracking(
-                billing_document=billing_document,
-                comisionable=comisionable,
-                usuario_marcado=usuario,
-                detalle_comision="Estado actualizado manualmente"
-            )
-            self.db.add(factura)
+            raise BillingDocumentDoesNotExistError(id)
         else:
-            factura.comisionable = comisionable
+            factura.estatus = estatus
             factura.usuario_marcado = usuario
             factura.fecha_marcado = datetime.utcnow()
             factura.detalle_comision = "Estado actualizado manualmente"
+        
         self.db.commit()
         return factura
-
-    async def procesar_factura(self, factura_sap: Dict, usuario: str) -> FacturaTracking:
+        
+    async def procesar_factura(self, factura_sap: Dict, usuario: str, id_corte: int) -> FacturaTracking:
         """Procesa una factura de SAP verificando primero el tracking local"""
         billing_document = factura_sap["BillingDocument"]
         
         # Verificar si ya existe en tracking
-        factura_tracking = self.db.query(FacturaTracking).filter_by(
-            billing_document=billing_document
-        ).first()
+        factura_tracking = self.db.query(FacturaTracking).filter_by(billing_document=billing_document).first()
         
-        if factura_tracking:
-            return factura_tracking
-            
         # Extraer materiales (artículos)
         materiales = []
         if isinstance(factura_sap["to_Item"]["A_BillingDocumentItemType"], list):
@@ -47,18 +45,38 @@ class FacturaTrackingService:
         else:
             materiales = [factura_sap["to_Item"]["A_BillingDocumentItemType"]["Material"]]
         
-        # Consultar directamente al sistema legado
+        # Calcular comisiones
+        articulos_comisionables, total_comision = await self.calcular_comisiones(materiales)
+        
+        if factura_tracking:
+            # Actualizar la factura existente
+            factura_tracking.importe_comision = total_comision
+            factura_tracking.detalle_comision = ""
+            factura_tracking.articulos=articulos_comisionables,
+            factura_tracking.id_corte = id_corte
+            self.db.commit()
+            return factura_tracking
+        else:
+            # Crear un nuevo tracking
+            nuevo_tracking = FacturaTracking(
+                billing_document=billing_document,
+                importe_total=factura_sap["TotalAmount"],
+                estatus=EstatusFactura.PAGABLE,
+                usuario_marcado=usuario,
+                detalle_comision="",
+                articulos=articulos_comisionables,
+                importe_comision=total_comision,
+                id_corte=id_corte
+            )
+            
+            self.db.add(nuevo_tracking)
+            self.db.commit()
+            
+            return nuevo_tracking
+    
+    async def calcular_comisiones(self, materiales: List[str]) -> Tuple[Dict[str, float], float]:
+        """Calcula las comisiones para los artículos y retorna los comisionables y el total"""
         articulos_comisionables = await self.legacy_system_service.consultar_articulos_comisionables(materiales)
-        es_comisionable = any(articulos_comisionables.values())
         
-        nuevo_tracking = FacturaTracking(
-            billing_document=billing_document,
-            comisionable=es_comisionable,
-            usuario_marcado=usuario,
-            detalle_comision=f"Artículos comisionables: {[m for m, c in articulos_comisionables.items() if c]}"
-        )
-        
-        self.db.add(nuevo_tracking)
-        self.db.commit()
-        
-        return nuevo_tracking
+        total_comision = sum(item["comision"] for item in articulos_comisionables.values())
+        return articulos_comisionables, total_comision
