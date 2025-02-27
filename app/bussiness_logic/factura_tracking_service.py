@@ -10,6 +10,17 @@ class FacturaTrackingService:
     def __init__(self, db: Session, legacy_system_service: LegacySystemService):
         self.db = db
         self.legacy_system_service = legacy_system_service
+
+    @staticmethod
+    def _get_agent(factura_sap: Dict) -> str:
+        """Obtains the personnel number from the items in the billing document"""
+        item_type = factura_sap["to_Item"]["A_BillingDocumentItemType"]
+        if isinstance(item_type, dict):
+            partner = item_type["to_Partner"]["A_BillingDocumentItemPartnerType"]
+        else:
+            partner = item_type[0]["to_Partner"]["A_BillingDocumentItemPartnerType"]
+        return partner["Personnel"]
+    
     def obtener_facturas_comisionables(self) -> FacturaTracking:
         return self.db.query(FacturaTracking).order_by(FacturaTracking.id_corte.desc(),FacturaTracking.id.asc()).all()
 
@@ -34,7 +45,6 @@ class FacturaTrackingService:
     async def procesar_factura(self, factura_sap: Dict, usuario: str, id_corte: int) -> FacturaTracking:
         """Procesa una factura de SAP verificando primero el tracking local"""
         billing_document = factura_sap["BillingDocument"]
-        
         # Verificar si ya existe en tracking
         factura_tracking = self.db.query(FacturaTracking).filter_by(billing_document=billing_document).first()
         
@@ -57,11 +67,13 @@ class FacturaTrackingService:
             self.db.commit()
             return factura_tracking
         else:
+            personnel_number = self._get_agent(factura_sap)
             # Crear un nuevo tracking
             nuevo_tracking = FacturaTracking(
                 billing_document=billing_document,
                 importe_total=factura_sap["TotalAmount"],
                 estatus=EstatusFactura.PAGABLE,
+                personnel_number=personnel_number,
                 usuario_marcado=usuario,
                 detalle_comision="",
                 articulos=articulos_comisionables,

@@ -3,13 +3,14 @@ from typing import Optional, Dict
 from sqlalchemy.orm import Session
 from app.bussiness_logic.db_models import CorteComision, EstatusCorte
 from app.exception import BillingCycleDoesNotExistError, ClosedBillingCycleError
+import logging
 
 class CorteMensualService:
     def __init__(self, db: Session):
         self.db = db
 
     def obtener_cortes(self) -> Optional[CorteComision]:
-        """Obtiene el corte abierto más reciente"""
+        """Enlista todos los cortes"""
         return self.db.query(CorteComision)\
             .order_by(CorteComision.anio_mes.desc())
 
@@ -29,21 +30,23 @@ class CorteMensualService:
 
     async def obtener_corte_por_periodo(self, anio: int, mes: int) -> CorteComision:
         """Obtiene un corte específico por período o crea uno nuevo si corresponde al mes actual."""
-        anio_mes = anio * 100 + mes
+        mes_str = str(mes).zfill(2)
+        anio_mes = f"{anio}{mes_str}"
         corte = self.db.query(CorteComision).filter_by(anio_mes=anio_mes).first()
-        if corte:
-            return corte
-
-        mes_actual = datetime.utcnow().month
-        anio_actual = datetime.utcnow().year
-
-        if mes == mes_actual and anio == anio_actual:
-            return await self.abrir_nuevo_corte(anio_mes, "Sistema")
-        raise BillingCycleDoesNotExistError(message=f"There is no billing cycle for the specified period ({anio_mes}).")
+        if not corte:
+            periodo_actual = datetime.utcnow().strftime('%Y%m')
+            if anio_mes == periodo_actual:
+                logging.info(f"Creando nuevo registro para corte del periodo {anio_mes}")
+                corte = await self.abrir_nuevo_corte(anio_mes, "Sistema")  
+            else:
+                logging.error(f"El periodo de corte especificado ({anio_mes}) no corresponde con un corte existente)")
+                raise BillingCycleDoesNotExistError(message=f"There is no billing cycle for the specified period ({anio_mes}).")
+        return corte
 
     async def abrir_nuevo_corte(self, anio_mes: int, usuario: str) -> CorteComision:
         """Abre un nuevo corte para el período especificado"""
         corte_existente = self.db.query(CorteComision).filter_by(anio_mes=anio_mes).first()
+        #TODO: Mejor cachar error por anio_mes existente al intentar crear un nuevo registro
         if corte_existente:
             if corte_existente.estatus == EstatusCorte.CERRADO:
                 raise PeriodClosedError(f"Ya existe un corte cerrado para el período {anio_mes}")
@@ -66,7 +69,7 @@ class CorteMensualService:
         year: int,
         month: int, 
         user: str, 
-        open_next: bool = True
+        open_next: bool = False
     ) -> Dict:
         """
         Cierra el corte actual y opcionalmente abre el siguiente
@@ -98,6 +101,7 @@ class CorteMensualService:
         """Calcula el siguiente período en formato YYYYMM"""
         
         if month == 12:
-            return (year + 1) * 100 + 1
+            return f"{year + 1}{1}"
         else:
-            return year * 100 + (month + 1)
+            month_str = str(month + 1).zfill(2)
+            return f"{year}{month_str}"

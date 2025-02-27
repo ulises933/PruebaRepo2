@@ -2,6 +2,7 @@ import asyncio
 from typing import List, Dict
 from app.trino import SQLOperations
 from app.env_variables import TRINO_CATALOG
+import logging
 
 class LegacySystemService:
 
@@ -76,7 +77,7 @@ class LegacySystemService:
                 },
             }
         except Exception as e:
-            print(f"Error consultando artículos sin comisión: {str(e)}")
+            logging.error(f"Error consultando artículos sin comisión: {str(e)}")
             return []
 
     async def consultar_articulos_comisionables(self, materiales: List[Dict[str, float]]) -> Dict[str, Dict[str, float]]:

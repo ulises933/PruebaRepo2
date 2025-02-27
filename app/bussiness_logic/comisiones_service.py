@@ -14,15 +14,16 @@ class ComisionesService:
         self.sap_api_service = sap_api_service
         self.sap_odata_service = sap_odata_service
 
-    async def obtener_facturas(self, anio: int, mes: int, personnel_number: str) -> List[FacturaTracking]:
+    async def obtener_facturas(self, anio: int, mes: int, personnel_number: str, customer_price_group: str, language: str) -> List[FacturaTracking]:
         """Obtiene las facturas según el estado del corte"""
         corte = await self.corte_service.obtener_corte_por_periodo(anio, mes)
         if corte.estatus == EstatusCorte.ABIERTO:
             # Consultar facturas de SAP
-            facturas_sap = await self.sap_api_service.get_facturas(anio, mes, personnel_number)
+            facturas_sap = await self.sap_api_service.get_facturas(anio, mes, personnel_number, customer_price_group, language)
             # Procesar facturas en el tracking
             tracking_data = []
             for factura in facturas_sap["A_BillingDocumentType"]:
+                #TODO: Todas las facturas del ambiente de dev tienen "InvoiceIsClearing"="false". Queremos que InvoiceIsClearing sea "true", pero lo dejaremos en false para poder testear en dev
                 if factura["BillingDocumentStatus"] == "Completed" and factura["InvoiceIsClearing"] == 'false':
                     tracking = await self.factura_service.procesar_factura(factura, "usuario_test", corte.id)
                     tracking_data.append(tracking)
@@ -48,12 +49,12 @@ class ComisionesService:
                 user
             )
 
-    async def cerrar_corte(self, year: int, month: int, user) -> Dict:
+    async def cerrar_corte(self, year: int, month: int,  personnel_number: str, customer_price_group: str, language: str, user: str) -> Dict:
         """Envía la información a SAP y cierra el corte"""
         
-        facturas_procesadas = await self.obtener_facturas(year, month, 0)
+        facturas_procesadas = await self.obtener_facturas(year, month, personnel_number, customer_price_group, language)
         
-        response = await self.sap_odata_service.create_journal_entry(facturas_procesadas, user)
+        response = await self.sap_odata_service.send_invoice_to_sap(facturas_procesadas, user)
         await self.corte_service.cerrar_corte(year,month,user)
         
         return response

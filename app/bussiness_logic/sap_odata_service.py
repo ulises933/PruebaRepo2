@@ -18,7 +18,7 @@ class SAPODataService:
         token = base64.b64encode(credentials.encode()).decode()
         return token
 
-    async def create_journal_entry(self, comission_billing_documents: List[FacturaTracking], user: str):
+    async def send_invoice_to_sap(self, comission_billing_documents: List[FacturaTracking], user: str):
         """Send monthly cut using OData"""
         json_data = self.build_json_body(comission_billing_documents, user)
         response = await self.make_request_call(json_data)

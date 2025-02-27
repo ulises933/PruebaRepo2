@@ -51,7 +51,7 @@ class CorteComision(Base):
     __tablename__ = "corte_comision"
 
     id = Column(Integer, primary_key=True, index=True)
-    anio_mes = Column(Integer, index=True)  # Formato YYYYMM
+    anio_mes = Column(String, index=True, unique=True)  # Formato YYYYMM
     estatus = Column(Enum(EstatusCorte),default=EstatusCorte.ABIERTO)
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
     fecha_ultima_mod = Column(DateTime, default=datetime.utcnow)
