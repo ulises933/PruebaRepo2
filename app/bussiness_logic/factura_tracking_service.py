@@ -2,7 +2,7 @@ from typing import Dict, List, Tuple
 from sqlalchemy.orm import Session
 from .db_models import FacturaTracking, EstatusFactura
 from .legacy_system_service import LegacySystemService
-from datetime import datetime
+from datetime import datetime, UTC
 
 from app.exception import BillingDocumentDoesNotExistError
 
@@ -21,10 +21,10 @@ class FacturaTrackingService:
             partner = item_type[0]["to_Partner"]["A_BillingDocumentItemPartnerType"]
         return partner["Personnel"]
     
-    def obtener_facturas_comisionables(self) -> FacturaTracking:
+    def obtener_facturas_comisionables(self) -> List[FacturaTracking]:
         return self.db.query(FacturaTracking).order_by(FacturaTracking.id_corte.desc(),FacturaTracking.id.asc()).all()
 
-    def obtener_facturas_comisionables_por_id_corte(self, id_corte: int) -> FacturaTracking:
+    def obtener_facturas_comisionables_por_id_corte(self, id_corte: int) -> List[FacturaTracking]:
         #TODO: decidir si se muestran solo facturas pagables en periodos pasados
         return self.db.query(FacturaTracking).filter_by(id_corte=id_corte).all()
 
@@ -36,12 +36,22 @@ class FacturaTrackingService:
         else:
             factura.estatus = estatus
             factura.usuario_marcado = usuario
-            factura.fecha_marcado = datetime.utcnow()
+            factura.fecha_marcado = datetime.now(UTC)
             factura.detalle_comision = "Estado actualizado manualmente"
         
         self.db.commit()
         return factura
-        
+    
+#    def actualizar_estado_facturas(self, ids:[int], estatus: EstatusFactura, usuario: str) -> List[FacturaTracking]:
+#        # Actualizar el estado de todas las facturas en una sola consulta
+#        self.db.query(FacturaTracking).filter(FacturaTracking.id.in_(ids)).update({
+#            FacturaTracking.estatus: nuevo_estatus,
+#            FacturaTracking.usuario_marcado: usuario
+#        }, synchronize_session=False)
+#        self.db.commit()
+#         updated_facturas = self.db.query(FacturaTracking).filter(FacturaTracking.id.in_(ids)).all()
+#        return updated_facturas
+  
     async def procesar_factura(self, factura_sap: Dict, usuario: str, id_corte: int) -> FacturaTracking:
         """Procesa una factura de SAP verificando primero el tracking local"""
         billing_document = factura_sap["BillingDocument"]

@@ -1,7 +1,7 @@
 from app.env_variables import SAP_ODATA_URL, SAP_ODATA_CLIENT_ID, SAP_ODATA_CLIENT_SECRET
 import base64
 from typing import List, Dict
-from datetime import datetime
+from datetime import datetime, UTC
 import aiohttp
 from app.bussiness_logic.db_models import FacturaTracking
 
@@ -91,8 +91,8 @@ class SAPODataService:
                     "DocumentHeaderText": document_header_text,
                     "CreatedByUser": created_by_user,
                     "CompanyCode": company_code,
-                    "DocumentDate": datetime.utcnow().isoformat(),
-                    "PostingDate": datetime.utcnow().isoformat(),
+                    "DocumentDate": datetime.now(UTC).isoformat(),
+                    "PostingDate": datetime.now(UTC).isoformat(),
                     "Item": items,
                     # TODO: Check if other items are mandatory
                 }

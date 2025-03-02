@@ -17,11 +17,12 @@ class ComisionesService:
     async def obtener_facturas(self, anio: int, mes: int, personnel_number: str, customer_price_group: str, language: str) -> List[FacturaTracking]:
         """Obtiene las facturas según el estado del corte"""
         corte = await self.corte_service.obtener_corte_por_periodo(anio, mes)
+        tracking_data = []
         if corte.estatus == EstatusCorte.ABIERTO:
             # Consultar facturas de SAP
             facturas_sap = await self.sap_api_service.get_facturas(anio, mes, personnel_number, customer_price_group, language)
             # Procesar facturas en el tracking
-            tracking_data = []
+            
             for factura in facturas_sap["A_BillingDocumentType"]:
                 #TODO: Todas las facturas del ambiente de dev tienen "InvoiceIsClearing"="false". Queremos que InvoiceIsClearing sea "true", pero lo dejaremos en false para poder testear en dev
                 if factura["BillingDocumentStatus"] == "Completed" and factura["InvoiceIsClearing"] == 'false':
@@ -30,11 +31,11 @@ class ComisionesService:
             return tracking_data
         elif corte.estatus == EstatusCorte.CERRADO:
             # Usar el tracking local
-            return self.factura_service.obtener_facturas_comisionables_por_id_corte(corte.id)
-        else:
-            raise Exception 
+            tracking_data = self.factura_service.obtener_facturas_comisionables_por_id_corte(corte.id)
+            
+        return tracking_data
 
-    async def actualizar_estatus_facturas(self, facturas: List[FacturaTracking], user: str):
+    def actualizar_estatus_facturas(self, facturas: List[FacturaTracking], user: str):
         corte_en_curso = self.corte_service.obtener_corte_actual()
         if not corte_en_curso:
             raise BillingCycleDoesNotExistError(message="No billing cycle has been created yet. Billing documents that are not associated with a billing cycle cannot be modified.")
