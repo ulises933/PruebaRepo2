@@ -22,6 +22,9 @@ import Layout from '../components/Layout'
 import { getCommissionsSummary, saveInvoiceStatuses, closeBillingCycle } from '../services/commissionsService'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
+import { useNavigate } from 'react-router-dom'
+const navigate = useNavigate()
+
 
 /**
  * CommissionsSummary page that integrates with the real FastAPI backend:
@@ -148,7 +151,6 @@ function CommissionsSummary() {
   async function handleGenerateCut() {
     try {
       const userName = user?.username || 'system_user'
-      // Example usage
       await closeBillingCycle({
         year,
         month,
@@ -158,11 +160,15 @@ function CommissionsSummary() {
         language: 'EN'
       })
       alert('Billing cycle closed successfully')
+  
+      // Now navigate to the new page to see the totals:
+      navigate(`/monthly-cut/${year}/${month}`)
     } catch (err) {
       console.error(err)
       alert('Error closing billing cycle')
     }
   }
+  
 
   // Pagination calculation
   const startIndex = (page - 1) * rowsPerPage
