@@ -7,7 +7,7 @@ import logging
 class LegacySystemService:
 
     # Mock del sistema legado
-    MOCK_ARTICULOS_LEGADO = {
+    LEGACY_ITEMS_MOCK = {
         "TG12": True,
         "TG13": False,
         "TG14": True,
@@ -19,9 +19,9 @@ class LegacySystemService:
         # Configuración para conexión a Trino/sistema legado
         self.trino = SQLOperations(TRINO_CATALOG)
     
-    async def consultar_articulos_sin_comision(self) -> List[int]:
+    async def query_non_commissionable_items(self) -> List[int]:
         """
-        Consulta los artículos que no generan comisión según los criterios configurados desde la base de datos del sistema legado.
+        Retrieves non-commissionable items according to the configurations stored in the legacy system.
         """
         query = """
         WITH criterios AS (
@@ -53,7 +53,7 @@ class LegacySystemService:
             results = self.trino.execute_query_no_orm(query)
             return [row['ClaArticulo'] for row in results]
             """
-            # return [key for key, value in MOCK_ARTICULOS_LEGADO.items() if value == False]
+            # return [key for key, value in LEGACY_ITEMS_MOCK.items() if value == False]
             return {
                 "TG12": {
                     "importe": 67.34,
@@ -80,10 +80,10 @@ class LegacySystemService:
             logging.error(f"Error consultando artículos sin comisión: {str(e)}")
             return []
 
-    async def consultar_articulos_comisionables(self, materiales: List[Dict[str, float]]) -> Dict[str, Dict[str, float]]:
+    async def get_commissionable_items(self, materiales: List[Dict[str, float]]) -> Dict[str, Dict[str, float]]:
         """
         Consulta si los artículos son comisionables y calcula la comisión del 5% sobre el importe.
         Retorna un diccionario con el importe original y el importe de la comisión.
         """
-        articulos_sin_comision = await self.consultar_articulos_sin_comision()
+        articulos_sin_comision = await self.query_non_commissionable_items()
         return articulos_sin_comision

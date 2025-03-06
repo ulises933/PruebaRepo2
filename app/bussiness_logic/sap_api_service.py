@@ -20,8 +20,8 @@ class SAPApiService:
         
         return {"start": start_str, "end": end_str}
         
-    async def get_facturas(self, year: int, month: int, personnel_number: str, customer_price_group: str, language: str) -> Dict:
-        """Obtiene facturas usando la API REST de SAP"""
+    async def get_billing_documents(self, year: int, month: int, personnel_number: str, customer_price_group: str, language: str) -> Dict:
+        """Gets billing documents from SAP"""
         date_range = self.compute_date_range(year, month)
         
         headers = {
@@ -43,17 +43,18 @@ class SAPApiService:
                                      json=payload) as response:
                     if response.status == 200:
                         json_response = await response.json()
-                        return json_response.get("data")
+                        res = json_response.get("data")
+                        return res
                     else:
-                        logging.error(f"Error al obtenerr facturas de SAP: {response.status}")
+                        logging.error(f"Error when retrieving billing documents from SAP: {response.status}")
                         logging.info(f"Response: {await response.text()}")
                         return self.get_mock_facturas()
         except Exception as e: # TODO: raise the exception when done testing
-            logging.error(f"Exception al obtener facturas de SAP: {str(e)}")
+            logging.error(f"Exception when trying to obtain billing documents from SAP: {str(e)}")
             return self.get_mock_facturas()
 
     def get_mock_facturas(self) -> Dict:
-        """Retorna datos mock para testing y fallback"""
+        """Returns a mock list of billing documents as a fallback"""
         return {
             "status": "success",
             "message": "Request processed successfully",

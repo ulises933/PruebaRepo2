@@ -1,153 +1,151 @@
 import pytest
 from sqlalchemy.orm import Session
-from app.bussiness_logic.corte_mensual_service import CorteMensualService
-from app.bussiness_logic.db_models import CorteComision, EstatusCorte
+from app.bussiness_logic.corte_mensual_service import MonthlyCutService
+from app.bussiness_logic.db_models import MonthlyCut, MonthlyCutStatus
 from app.exception import BillingCycleDoesNotExistError, ClosedBillingCycleError
 from datetime import datetime
 import re
 
 @pytest.fixture
-def corte_mensual_service(mocker):
-    # Mock de la sesión de la base de datos
+def monthly_cut_service(mocker):
+    # db session mock
     db_session_mock = mocker.Mock()
-    return CorteMensualService(db_session_mock)
+    return MonthlyCutService(db_session_mock)
 
 @pytest.fixture
-def corte_abierto(corte_mensual_service, mocker):
-    corte = CorteComision(id=1, estatus=EstatusCorte.ABIERTO, anio_mes="202401")
-    mocker.patch.object(corte_mensual_service.db.query.return_value.filter_by.return_value, 'first', return_value=corte)
-    return corte
+def open_monthly_cut(monthly_cut_service, mocker):
+    monthly_cut = MonthlyCut(id=1, status=MonthlyCutStatus.OPEN, year_month="202401")
+    mocker.patch.object(monthly_cut_service.db.query.return_value.filter_by.return_value, 'first', return_value=monthly_cut)
+    return monthly_cut
 
 @pytest.fixture
-def corte_cerrado(corte_mensual_service, mocker):
-    corte = CorteComision(id=2, estatus=EstatusCorte.CERRADO, anio_mes="202401")
-    mocker.patch.object(corte_mensual_service.db.query.return_value.filter_by.return_value, 'first', return_value=corte)
-    return corte
+def closed_monthly_cut(monthly_cut_service, mocker):
+    monthly_cut = MonthlyCut(id=2, status=MonthlyCutStatus.CLOSED, year_month="202401")
+    mocker.patch.object(monthly_cut_service.db.query.return_value.filter_by.return_value, 'first', return_value=monthly_cut)
+    return monthly_cut
 
 @pytest.fixture
-def corte_id_existente(corte_mensual_service, mocker):
-    corte = CorteComision(id=1, estatus=EstatusCorte.ABIERTO, anio_mes="202401")
-    mocker.patch.object(corte_mensual_service.db.query.return_value.filter_by.return_value, 'first', return_value=corte)
-    mocker.patch.object(corte_mensual_service.db.query.return_value, 'get', return_value=corte)
-    return corte
+def existing_monthly_cut_id(monthly_cut_service, mocker):
+    monthly_cut = MonthlyCut(id=1, status=MonthlyCutStatus.OPEN, year_month="202401")
+    mocker.patch.object(monthly_cut_service.db.query.return_value.filter_by.return_value, 'first', return_value=monthly_cut)
+    mocker.patch.object(monthly_cut_service.db.query.return_value, 'get', return_value=monthly_cut)
+    return monthly_cut
 
 @pytest.mark.asyncio
-async def test_abrir_nuevo_corte_existente(corte_mensual_service, corte_abierto):
-    result = await corte_mensual_service.abrir_nuevo_corte("202401", "test_user")
+async def test_create_monthly_cut_existing_period(monthly_cut_service, open_monthly_cut):
+    result = await monthly_cut_service.create_monthly_cut("202401", "test_user")
     
-    assert result == corte_abierto 
+    assert result == open_monthly_cut 
 
 @pytest.mark.asyncio
-async def test_abrir_nuevo_corte_cerrado(corte_mensual_service, corte_cerrado):
-    with pytest.raises(ClosedBillingCycleError, match="Ya existe un corte cerrado para el período 202401"):
-        await corte_mensual_service.abrir_nuevo_corte("202401", "test_user")
+async def test_create_monthly_cut_existing_and_closed_period(monthly_cut_service, closed_monthly_cut):
+    with pytest.raises(ClosedBillingCycleError, match="A monthly cut for the period 202401 already exist."):
+        await monthly_cut_service.create_monthly_cut("202401", "test_user")
 
 @pytest.mark.asyncio
-async def test_abrir_nuevo_corte_creacion(corte_mensual_service, mocker):
-    # Mockear la ausencia de un corte existente
-    corte_mensual_service.db.query.return_value.filter_by.return_value.first.return_value = None
+async def test_create_monthly_cut(monthly_cut_service, mocker):
+    #no monthly cut for the current period
+    monthly_cut_service.db.query.return_value.filter_by.return_value.first.return_value = None
     
-    # Mockear la creación de un nuevo corte
-    nuevo_corte = CorteComision(id=2, estatus=EstatusCorte.ABIERTO, anio_mes="202401")
-    corte_mensual_service.db.add = mocker.Mock()
-    corte_mensual_service.db.commit = mocker.Mock()
+    new_monthly_cut = MonthlyCut(id=2, status=MonthlyCutStatus.OPEN, year_month="202401")
+    monthly_cut_service.db.add = mocker.Mock()
+    monthly_cut_service.db.commit = mocker.Mock()
     
-    result = await corte_mensual_service.abrir_nuevo_corte("202401", "test_user")
+    result = await monthly_cut_service.create_monthly_cut("202401", "test_user")
     
-    # Verificar que se haya creado un nuevo corte
-    corte_mensual_service.db.add.assert_called_once()
-    corte_mensual_service.db.commit.assert_called_once()
-    assert result.anio_mes == "202401"
-    assert result.estatus == EstatusCorte.ABIERTO
+    # Verify that a new monthly cut has been created
+    monthly_cut_service.db.add.assert_called_once()
+    monthly_cut_service.db.commit.assert_called_once()
+    assert result.year_month == "202401"
+    assert result.status == MonthlyCutStatus.OPEN
 
 @pytest.mark.asyncio
-async def test_obtener_corte_por_periodo_existente_abierto(corte_mensual_service, corte_abierto):
-    result = await corte_mensual_service.obtener_corte_por_periodo(2024, 1)
-    assert result == corte_abierto 
+async def test_get_existing_monhtly_cut_by_period_open_status(monthly_cut_service, open_monthly_cut):
+    result = await monthly_cut_service.get_monthly_cut_by_period(2024, 1)
+    assert result == open_monthly_cut 
 
 @pytest.mark.asyncio
-async def test_obtener_corte_por_periodo_existente_cerrado(corte_mensual_service, corte_cerrado):
-    result = await corte_mensual_service.obtener_corte_por_periodo(2024, 1)
-    assert result == corte_cerrado
+async def test_get_existing_monhtly_cut_by_period_closed_status(monthly_cut_service, closed_monthly_cut):
+    result = await monthly_cut_service.get_monthly_cut_by_period(2024, 1)
+    assert result == closed_monthly_cut
 
 @pytest.mark.asyncio
-async def test_obtener_corte_por_periodo_crear_nuevo_corte(corte_mensual_service, mocker):
-    # Obtener el período actual
-    anio_actual, mes_actual = datetime.now().year, datetime.now().month
+async def test_get_non_existing_monhtly_cut_current_period(monthly_cut_service, mocker):
+    # Get the current period
+    current_year, current_month = datetime.now().year, datetime.now().month
     
-    # Mockear la ausencia de un corte existente
-    corte_mensual_service.db.query.return_value.filter_by.return_value.first.return_value = None
+    # No monthly cut
+    monthly_cut_service.db.query.return_value.filter_by.return_value.first.return_value = None
     
-    # Mockear la creación de un nuevo corte
-    nuevo_corte = CorteComision(id=2, estatus=EstatusCorte.ABIERTO, anio_mes=f"{anio_actual}{mes_actual:02d}")
-    corte_mensual_service.db.add = mocker.Mock()
-    corte_mensual_service.db.commit = mocker.Mock(return_value=None)
+    new_monthly_cut = MonthlyCut(id=2, status=MonthlyCutStatus.OPEN, year_month=f"{current_year}{current_month:02d}")
+    monthly_cut_service.db.add = mocker.Mock()
+    monthly_cut_service.db.commit = mocker.Mock(return_value=None)
     
-    result = await corte_mensual_service.obtener_corte_por_periodo(anio_actual, mes_actual)
+    result = await monthly_cut_service.get_monthly_cut_by_period(current_year, current_month)
     
-    # Verificar que se haya creado un nuevo corte
-    corte_mensual_service.db.add.assert_called_once()
-    corte_mensual_service.db.commit.assert_called_once()
-    assert result.anio_mes == f"{anio_actual}{mes_actual:02d}"
-    assert result.estatus == EstatusCorte.ABIERTO
+    # Verify that a new monthly cut has been created
+    monthly_cut_service.db.add.assert_called_once()
+    monthly_cut_service.db.commit.assert_called_once()
+    assert result.year_month == f"{current_year}{current_month:02d}"
+    assert result.status == MonthlyCutStatus.OPEN
 
 @pytest.mark.asyncio
-async def test_obtener_corte_por_periodo_no_existente(corte_mensual_service, mocker):
-    # Obtener el período actual
-    anio_anterior, mes_actual = datetime.now().year - 1, datetime.now().month
+async def test_get_non_existing_monhtly_cut_by_period(monthly_cut_service, mocker):
+    # Get the current period
+    anio_anterior, current_month = datetime.now().year - 1, datetime.now().month
     
-    # Mockear la ausencia de un corte existente
-    corte_mensual_service.db.query.return_value.filter_by.return_value.first.return_value = None
+    # No monthly cut
+    monthly_cut_service.db.query.return_value.filter_by.return_value.first.return_value = None
     
-    # Mensaje de error esperado
-    expected_message = f"There is no billing cycle for the specified period ({anio_anterior}{str(mes_actual).zfill(2)})."
+    # Expected error
+    expected_message = f"There is no billing cycle for the specified period ({anio_anterior}{str(current_month).zfill(2)})."
     
-    # Simular que el período no corresponde al mes actual
+    # mock period mismatch
     with pytest.raises(BillingCycleDoesNotExistError, match=re.escape(expected_message)):
-        await corte_mensual_service.obtener_corte_por_periodo(anio_anterior, mes_actual)
+        await monthly_cut_service.get_monthly_cut_by_period(anio_anterior, current_month)
 
 @pytest.mark.asyncio
-async def test_obtener_corte_por_periodo_existente(corte_mensual_service, mocker):
-    anio_actual, mes_actual = datetime.now().year, datetime.now().month
+async def test_get_existing_monhtly_cut_by_period(monthly_cut_service, mocker):
+    current_year, current_month = datetime.now().year, datetime.now().month
     
-    corte = CorteComision(id=1, estatus=EstatusCorte.ABIERTO, anio_mes=f"{anio_actual}{mes_actual:02d}")
-    mocker.patch.object(corte_mensual_service.db.query.return_value.filter_by.return_value, 'first', return_value=corte)
+    monthly_cut = MonthlyCut(id=1, status=MonthlyCutStatus.OPEN, year_month=f"{current_year}{current_month:02d}")
+    mocker.patch.object(monthly_cut_service.db.query.return_value.filter_by.return_value, 'first', return_value=monthly_cut)
     
-    result = await corte_mensual_service.obtener_corte_por_periodo(anio_actual, mes_actual)
+    result = await monthly_cut_service.get_monthly_cut_by_period(current_year, current_month)
     
-    assert result == corte
+    assert result == monthly_cut
 
 @pytest.mark.asyncio
-async def test_cerrar_corte_exitoso(corte_mensual_service, corte_abierto, mocker):
-    corte_mensual_service.db.commit = mocker.Mock(return_value=None)
+async def test_close_monthly_cut_success(monthly_cut_service, open_monthly_cut, mocker):
+    monthly_cut_service.db.commit = mocker.Mock(return_value=None)
 
-    await corte_mensual_service.cerrar_corte(2024, 1, "test_user", open_next=False)
+    await monthly_cut_service.close_monthly_cut(2024, 1, "test_user", open_next=False)
     
-    assert corte_abierto.estatus == EstatusCorte.CERRADO
-    assert corte_abierto.usuario_mod == "test_user"
-    corte_mensual_service.db.commit.assert_called_once()
+    assert open_monthly_cut.status == MonthlyCutStatus.CLOSED
+    assert open_monthly_cut.last_modified_user == "test_user"
+    monthly_cut_service.db.commit.assert_called_once()
 
 @pytest.mark.asyncio
-async def test_cerrar_corte_ya_cerrado(corte_mensual_service, corte_cerrado):    
-    with pytest.raises(ClosedBillingCycleError, match="El corte del período 202401 ya está cerrado"):
-        await corte_mensual_service.cerrar_corte(2024, 1, "test_user", open_next=False)
+async def test_close_monthly_cut_already_closed(monthly_cut_service, closed_monthly_cut):    
+    with pytest.raises(ClosedBillingCycleError, match="Monthly cut for period 202401 is already closed."):
+        await monthly_cut_service.close_monthly_cut(2024, 1, "test_user", open_next=False)
 
 @pytest.mark.asyncio
-async def test_cerrar_corte_no_existente(corte_mensual_service, mocker):
-    corte_mensual_service.db.query.return_value.filter_by.return_value.first.return_value = None
+async def test_close_non_existent_monthly_cut(monthly_cut_service, mocker):
+    monthly_cut_service.db.query.return_value.filter_by.return_value.first.return_value = None
     
     with pytest.raises(BillingCycleDoesNotExistError, match=re.escape("There is no billing cycle for the specified period (202401).")):
-        await corte_mensual_service.cerrar_corte(2024, 1, "test_user", open_next=False)
+        await monthly_cut_service.close_monthly_cut(2024, 1, "test_user", open_next=False)
 
 @pytest.mark.asyncio
-async def test_obtener_corte_por_id_existente(corte_mensual_service, corte_id_existente):
-    result = corte_mensual_service.obtener_corte_por_id(1)
+async def test_get_monthly_cut_by_id_existing_id(monthly_cut_service, existing_monthly_cut_id):
+    result = monthly_cut_service.get_monthly_cut_by_id(1)
     
-    assert result == corte_id_existente
+    assert result == existing_monthly_cut_id
 
 @pytest.mark.asyncio
-async def test_obtener_corte_por_id_no_existente(corte_mensual_service, mocker):
-    corte_mensual_service.db.query.return_value.get.return_value = None
+async def test_get_monthly_cut_by_id_inexistent_id(monthly_cut_service, mocker):
+    monthly_cut_service.db.query.return_value.get.return_value = None
     
     with pytest.raises(BillingCycleDoesNotExistError, match=re.escape("There is no billing cycle with the specified id (999).")):
-        corte_mensual_service.obtener_corte_por_id(999)  # ID que no existe
+        monthly_cut_service.get_monthly_cut_by_id(999)  # non-existent id
