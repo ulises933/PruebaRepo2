@@ -13,7 +13,7 @@ TRINO_HOST = os.getenv('TRINO_HOST', 'localhost')
 TRINO_PORT = os.getenv('TRINO_PORT', '8080')
 TRINO_USER = os.getenv('TRINO_USER', 'admin')
 TRINO_CATALOG = os.getenv('TRINO_CATALOG')
-
+TRINO_CATALOG_TICENTRAL = os.getenv('TRINO_CATALOG_TICENTRAL')
 LOGGING_NAME = os.getenv('LOGGING_NAME')
 
 DB_DIR = "data"

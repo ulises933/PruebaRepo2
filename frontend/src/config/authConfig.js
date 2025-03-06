@@ -16,12 +16,10 @@ export const msalConfig = {
     // Whether to navigate to the original request URL after login
     navigateToLoginRequestUrl: true,
     // URL to redirect after logout
-    postLogoutRedirectUri: "http://localhost:3000",
+    //postLogoutRedirectUri: "http://localhost:3000",
   },
   cache: {
-    // Store tokens in session storage
-    cacheLocation: "sessionStorage",
-    // Don't use cookies for state management
+    cacheLocation: "localStorage",
     storeAuthStateInCookie: false,
   },
   system: {

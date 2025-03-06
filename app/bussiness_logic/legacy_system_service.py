@@ -1,6 +1,6 @@
 import asyncio
 from typing import List, Dict
-from app.trino import SQLOperations
+from app.trino import TrinoOperations
 from app.env_variables import TRINO_CATALOG
 import logging
 
@@ -17,7 +17,7 @@ class LegacySystemService:
 
     def __init__(self):
         # Configuración para conexión a Trino/sistema legado
-        self.trino = SQLOperations(TRINO_CATALOG)
+        self.trino = TrinoOperations(TRINO_CATALOG)
     
     async def consultar_articulos_sin_comision(self) -> List[int]:
         """
