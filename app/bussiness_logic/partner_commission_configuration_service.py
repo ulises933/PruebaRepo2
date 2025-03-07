@@ -31,7 +31,7 @@ class PartnerCommissionConfigurationService:
             date_created=datetime.now(UTC),
             last_modified_date=datetime.now(UTC),
             last_modified_user = user_mod,
-            **partnerConfiguration.dict()
+            **partnerConfiguration.model_dump()
         )
         self.db.add(commission_config)
         self.db.commit() 

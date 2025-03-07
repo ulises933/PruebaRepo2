@@ -105,7 +105,7 @@ class ClosingCycleData(BaseModel):
 @business_logic_router.post("/close_billing_cycle")
 async def close_billing_cycle(request: Request, closingCycleData: ClosingCycleData, commissions_service: CommissionsService = Depends(get_comisiones_service)):
     try:
-        sap_response = await commissions_service.close_monthly_cut(**closingCycleData.dict())
+        sap_response = await commissions_service.close_monthly_cut(**closingCycleData.model_dump())
         response_content = {
             "returnData": sap_response,
             "displayMessage": "Billing cycle closed successfully."
