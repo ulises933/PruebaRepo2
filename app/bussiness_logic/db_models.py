@@ -77,3 +77,29 @@ class AuditoriaLog(Base):
     fecha = Column(DateTime)
     detalles = Column(JSON)
 
+class PartnerCommissionConfiguration(Base):
+    __tablename__ = 'partner_commission_configuration'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    personnel_number = Column(String, nullable=False, unique=True, index=True)
+    full_name = Column(String, nullable=False)
+    commission_percent = Column(Float, nullable=False)
+    fixed_fee = Column(Float, nullable=False)
+    customer_price_group = Column(String, nullable=False, index=True)
+    date_created = Column(DateTime, default=datetime.utcnow)
+    last_modified_date = Column(DateTime, default=datetime.utcnow)
+    last_modified_user = Column(String)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "personnel_number": self.personnel_number,
+            "full_name": self.full_name,
+            "commission_percent": self.commission_percent,
+            "fixed_fee": self.fixed_fee,
+            "customer_price_group": self.customer_price_group,
+            "date_created": self.date_created.isoformat() if self.date_created else None,
+            "last_modified_date": self.last_modified_date.isoformat() if self.last_modified_date else None,
+            "last_modified_user": self.last_modified_user,
+        }
+

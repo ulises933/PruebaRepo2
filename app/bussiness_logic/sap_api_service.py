@@ -3,6 +3,7 @@ import aiohttp
 from app.env_variables import SAP_API_KEY, SAP_API_URL
 from datetime import datetime, timedelta
 import logging
+from typing import Optional
 
 class SAPApiService:
     def __init__(self):
@@ -20,7 +21,7 @@ class SAPApiService:
         
         return {"start": start_str, "end": end_str}
         
-    async def get_billing_documents(self, year: int, month: int, personnel_number: str, customer_price_group: str, language: str) -> Dict:
+    async def get_billing_documents(self, year: int, month: int, personnel_number: str, customer_price_group: str, language: Optional[str] = "EN") -> Dict:
         """Gets billing documents from SAP"""
         date_range = self.compute_date_range(year, month)
         
