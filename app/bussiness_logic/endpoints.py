@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Request, Depends
-from app.bussiness_logic.dependencies import get_billing_doc_tracking_service, get_monthly_cut_service, get_comisiones_service
+from app.bussiness_logic.dependencies import get_billing_doc_tracking_service, get_monthly_cut_service, get_comisiones_service, get_partner_catalog_service, get_partner_commission_configuration_service
 from app.bussiness_logic.factura_tracking_service import BillingDocumentTrackingService
 from app.bussiness_logic.corte_mensual_service import MonthlyCutService
+from app.bussiness_logic.partner_catalog_service import PartnerCatalogService
+from app.bussiness_logic.partner_commission_configuration_service import PartnerCommissionConfigurationService, PartnerConfiguration
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from app.bussiness_logic.db_models import BillingDocumentStatus
 from app.bussiness_logic.comisiones_service import CommissionsService
 from app.xm_json_response import JsonOrXmlResponse
@@ -103,7 +105,7 @@ class ClosingCycleData(BaseModel):
 @business_logic_router.post("/close_billing_cycle")
 async def close_billing_cycle(request: Request, closingCycleData: ClosingCycleData, commissions_service: CommissionsService = Depends(get_comisiones_service)):
     try:
-        sap_response = await commissions_service.close_monthly_cut(**closingCycleData.dict())
+        sap_response = await commissions_service.close_monthly_cut(**closingCycleData.model_dump())
         response_content = {
             "returnData": sap_response,
             "displayMessage": "Billing cycle closed successfully."
@@ -119,3 +121,66 @@ async def close_billing_cycle(request: Request, closingCycleData: ClosingCycleDa
         }
         status_code = 500
     return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
+
+@business_logic_router.get("/partners")
+async def get_partners(request: Request, customer_price_group: Optional[str] = None, partner_catalog_service: PartnerCatalogService = Depends(get_partner_catalog_service)):
+    try:
+        partners = await partner_catalog_service.get_partners(customer_price_group)
+        response_content = partners
+        status_code = 200
+    except Exception as e:
+        logging.exception(e)
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to retrieve partners catalog."
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content= response_content, request=request, status_code=status_code)
+
+@business_logic_router.post("/partner_configuration")
+async def createPartnerConfiguration(request:Request, partner_configuration: PartnerConfiguration, user_mod: str, partner_commission_configuration_service:PartnerCommissionConfigurationService=Depends(get_partner_commission_configuration_service)):
+    try:
+        partner_configuration = partner_commission_configuration_service.createConfiguration(partner_configuration, user_mod)
+        response_content = partner_configuration.serialize()
+        status_code = 200
+    except Exception as e:
+        logging.exception(e)
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to create a partner configuration."
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
+
+@business_logic_router.patch("/partner_configuration")
+async def updatePartnerConfiguration(request:Request, partner_configurations: List[PartnerConfiguration], user_mod: str, partner_commission_configuration_service:PartnerCommissionConfigurationService=Depends(get_partner_commission_configuration_service)):
+    try:
+        updated_configurations = []
+        for partner_configuration in partner_configurations:
+            updated_configuration = partner_commission_configuration_service.updateConfiguration(partner_configuration, user_mod)
+            updated_configurations.append(updated_configuration.serialize())
+        response_content = updated_configurations
+        status_code = 200
+    except Exception as e:
+        logging.exception(e)
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to update a partner configuration."
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
+
+@business_logic_router.get("/partner_configurations")
+async def get_partner_configurations(request: Request, customer_price_group: str, partner_commission_configuration_service:PartnerCommissionConfigurationService=Depends(get_partner_commission_configuration_service)):
+    try:
+        partner_configurations = partner_commission_configuration_service.listConfigurations(customer_price_group)
+        response_content = [partner_configuration.serialize() for partner_configuration in partner_configurations]
+        status_code = 200
+    except Exception as e:
+        logging.exception(e)
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to retrieve partner configurations"
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content= response_content, request=request, status_code=status_code)
