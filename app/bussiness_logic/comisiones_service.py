@@ -24,7 +24,7 @@ class CommissionsService:
             if isinstance(sap_billing_docs["A_BillingDocumentType"], list):
                 billing_docs = sap_billing_docs["A_BillingDocumentType"]
             else:
-                billing_docs = [sap_billing_doc["A_BillingDocumentType"]]
+                billing_docs = [sap_billing_docs["A_BillingDocumentType"]]
             for billing_doc in billing_docs:
                 #TODO: Todas las billing_docs del ambiente de dev tienen "InvoiceIsClearing"="false". Queremos que InvoiceIsClearing sea "true", pero lo dejaremos en false para poder testear en dev
                 if billing_doc["BillingDocumentStatus"] == "Completed" and billing_doc["InvoiceIsClearing"] == 'false':

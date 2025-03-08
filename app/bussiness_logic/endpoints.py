@@ -129,6 +129,7 @@ async def get_partners(request: Request, customer_price_group: Optional[str] = N
         response_content = partners
         status_code = 200
     except Exception as e:
+        logging.exception(e)
         response_content = {
             "errorMessage": str(e),
             "displayMessage": "Error when attempting to retrieve partners catalog."
@@ -143,6 +144,7 @@ async def createPartnerConfiguration(request:Request, partner_configuration: Par
         response_content = partner_configuration.serialize()
         status_code = 200
     except Exception as e:
+        logging.exception(e)
         response_content = {
             "errorMessage": str(e),
             "displayMessage": "Error when attempting to create a partner configuration."
@@ -160,6 +162,7 @@ async def updatePartnerConfiguration(request:Request, partner_configurations: Li
         response_content = updated_configurations
         status_code = 200
     except Exception as e:
+        logging.exception(e)
         response_content = {
             "errorMessage": str(e),
             "displayMessage": "Error when attempting to update a partner configuration."
@@ -173,7 +176,8 @@ async def get_partner_configurations(request: Request, customer_price_group: str
         partner_configurations = partner_commission_configuration_service.listConfigurations(customer_price_group)
         response_content = [partner_configuration.serialize() for partner_configuration in partner_configurations]
         status_code = 200
-    except Exception as e: 
+    except Exception as e:
+        logging.exception(e)
         response_content = {
             "errorMessage": str(e),
             "displayMessage": "Error when attempting to retrieve partner configurations"
