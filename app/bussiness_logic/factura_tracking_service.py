@@ -5,6 +5,7 @@ from .legacy_system_service import LegacySystemService
 from datetime import datetime, UTC
 
 from app.exception import BillingDocumentDoesNotExistError
+from app.utils.billing_document_utils import get_partner_info
 
 class BillingDocumentTrackingService:
     def __init__(self, db: Session, legacy_system_service: LegacySystemService):
@@ -12,14 +13,9 @@ class BillingDocumentTrackingService:
         self.legacy_system_service = legacy_system_service
 
     @staticmethod
-    def _get_agent(factura_sap: Dict) -> str:
+    def _get_agent(billing_document: Dict) -> str:
         """Obtains the personnel number from the items in the billing document"""
-        item_type = factura_sap["to_Item"]["A_BillingDocumentItemType"]
-        if isinstance(item_type, dict):
-            partner = item_type["to_Partner"]["A_BillingDocumentItemPartnerType"]
-        else:
-            partner = item_type[0]["to_Partner"]["A_BillingDocumentItemPartnerType"]
-        return partner["Personnel"]
+        return get_partner_info(billing_document, lambda partner: partner["Personnel"])
     
     def get_billing_documents(self) -> List[BillingDocumentTracking]:
         return self.db.query(BillingDocumentTracking).order_by(BillingDocumentTracking.monthly_cut_id.desc(),BillingDocumentTracking.id.asc()).all()
