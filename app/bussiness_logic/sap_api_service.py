@@ -2,12 +2,12 @@ from typing import Dict
 import aiohttp
 from app.env_variables import SAP_API_KEY, SAP_API_URL
 from datetime import datetime, timedelta
+import logging
 
 class SAPApiService:
-    def __init__(self, lang = "EN"):
+    def __init__(self):
         self.api_key = SAP_API_KEY
         self.api_url = SAP_API_URL
-        self.lang = lang
     
     @staticmethod
     def compute_date_range(year, month):
@@ -20,8 +20,8 @@ class SAPApiService:
         
         return {"start": start_str, "end": end_str}
         
-    async def get_facturas(self, year: int, month: int, personnel_number: str) -> Dict:
-        """Obtiene facturas usando la API REST de SAP"""
+    async def get_billing_documents(self, year: int, month: int, personnel_number: str, customer_price_group: str, language: str) -> Dict:
+        """Gets billing documents from SAP"""
         date_range = self.compute_date_range(year, month)
         
         headers = {
@@ -29,11 +29,11 @@ class SAPApiService:
         }
         
         payload = {
-            "CustomerPriceGroup": "", # TODO: obtener CustomerPriceGroup de Wiremax
+            "CustomerPriceGroup": customer_price_group, # TODO: obtener CustomerPriceGroup de Wiremax
             "StartDate": date_range["start"],
             "FinishDate": date_range["end"],
             "PersonnelNumber": personnel_number,
-            "Language": self.lang
+            "Language": language
         }
         
         try:
@@ -43,17 +43,18 @@ class SAPApiService:
                                      json=payload) as response:
                     if response.status == 200:
                         json_response = await response.json()
-                        return json_response.get("data")
+                        res = json_response.get("data")
+                        return res
                     else:
-                        print(f"Error al obtenerr facturas de SAP: {response.status}")
-                        print(f"Response: {await response.text()}")
+                        logging.error(f"Error when retrieving billing documents from SAP: {response.status}")
+                        logging.info(f"Response: {await response.text()}")
                         return self.get_mock_facturas()
         except Exception as e: # TODO: raise the exception when done testing
-            print(f"Exception al obtener facturas de SAP: {str(e)}")
+            logging.error(f"Exception when trying to obtain billing documents from SAP: {str(e)}")
             return self.get_mock_facturas()
 
     def get_mock_facturas(self) -> Dict:
-        """Retorna datos mock para testing y fallback"""
+        """Returns a mock list of billing documents as a fallback"""
         return {
             "status": "success",
             "message": "Request processed successfully",

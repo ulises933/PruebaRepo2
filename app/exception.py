@@ -21,7 +21,7 @@ class BillingDocumentOutOfBillingCycleError(Exception):
 
 class BillingDocumentDoesNotExistError(Exception):
     def __init__(self,id:int):
-        super().__init__(f"No existe una factura con id={id}")
+        super().__init__(f"There is no billing document with id = {id}")
 
 class BillingCycleDoesNotExistError(Exception):
     def __init__(self,message:str):

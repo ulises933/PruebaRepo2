@@ -1,61 +1,58 @@
 from fastapi import APIRouter, Request, Depends
-from app.bussiness_logic.dependencies import get_factura_tracking_service, get_corte_mensual_service, get_comisiones_service
-from app.bussiness_logic.factura_tracking_service import FacturaTrackingService
-from app.bussiness_logic.corte_mensual_service import CorteMensualService
+from app.bussiness_logic.dependencies import get_billing_doc_tracking_service, get_monthly_cut_service, get_comisiones_service
+from app.bussiness_logic.factura_tracking_service import BillingDocumentTrackingService
+from app.bussiness_logic.corte_mensual_service import MonthlyCutService
 from pydantic import BaseModel
 from typing import List
-from app.bussiness_logic.db_models import EstatusFactura
-from app.bussiness_logic.comisiones_service import ComisionesService
+from app.bussiness_logic.db_models import BillingDocumentStatus
+from app.bussiness_logic.comisiones_service import CommissionsService
 from app.xm_json_response import JsonOrXmlResponse
 from app.exception import BillingDocumentOutOfBillingCycleError, BillingCycleDoesNotExistError, BillingDocumentDoesNotExistError,ClosedBillingCycleError
 
+import logging
 
 business_logic_router = APIRouter()
 
-class Factura(BaseModel):
+class BillingDocument(BaseModel):
     id: int
-    estatus: EstatusFactura
-    id_corte: int
+    status: BillingDocumentStatus
+    monthly_cut_id: int
 
-class FacturasRequest(BaseModel):
-    facturas: List[Factura]
-    user: str
+class BillingDocumentRequest(BaseModel):
+    modified_billing_docs: List[BillingDocument]
+    user_mod: str
 
-@business_logic_router.get("/facturas")
-async def obtener_facturas(request:Request, factura_service:FacturaTrackingService=Depends(get_factura_tracking_service)):
-    facturas = factura_service.obtener_facturas_comisionables()
-    response_content = [factura.serialize() for factura in facturas]
+@business_logic_router.get("/billing_documents")
+async def getBillingDocuments(request:Request, billing_doc_tracking_service:BillingDocumentTrackingService=Depends(get_billing_doc_tracking_service)):
+    billing_documents = billing_doc_tracking_service.get_billing_documents()
+    response_content = [billing_document.serialize() for billing_document in billing_documents]
     status_code = 200
     return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
 
 
-@business_logic_router.get("/cortes")
-async def obtener_cortes(request:Request, corte_service:CorteMensualService=Depends(get_corte_mensual_service)):
-    cortes = corte_service.obtener_cortes()
-    response_content = [corte.serialize() for corte in cortes]
+@business_logic_router.get("/monthly_cut")
+async def get_monthly_cuts(request:Request, monthly_cut_service:MonthlyCutService=Depends(get_monthly_cut_service)):
+    monthly_cuts = monthly_cut_service.get_monthly_cuts()
+    response_content = [monthly_cut.serialize() for monthly_cut in monthly_cuts]
     status_code = 200
     return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
 
 @business_logic_router.post("/guardar_cambios")
 async def guardar_cambios(
     request: Request,
-    data:FacturasRequest,
-    comisiones_service: ComisionesService = Depends(get_comisiones_service)
+    billing_doc_request:BillingDocumentRequest,
+    commissions_service: CommissionsService = Depends(get_comisiones_service)
 ):
+    modified_billing_docs = billing_doc_request.modified_billing_docs
+    user_mod = billing_doc_request.user_mod
     try:
-        await comisiones_service.actualizar_estatus_facturas(data.facturas, data.user)
+        commissions_service.update_billing_document_status(modified_billing_docs, user_mod)
         response_content = {
             "returnData": "",
             "displayMessage": "Billing documents successfully updated."
         }
         status_code = 200
-    except BillingCycleDoesNotExistError as e:
-        response_content = str(e)
-        status_code = 409
-    except BillingDocumentDoesNotExistError as e:
-        response_content = str(e)
-        status_code = 409
-    except BillingDocumentOutOfBillingCycleError as e:
+    except (BillingCycleDoesNotExistError, BillingDocumentDoesNotExistError, BillingDocumentOutOfBillingCycleError) as e:
         response_content = str(e)
         status_code = 409
     except Exception as e:
@@ -75,12 +72,14 @@ async def comission_summary(
     year: int = 2024,
     month: int = 12,
     personnel_number: str = "0",
-    commissions_service: ComisionesService = Depends(get_comisiones_service)
+    customer_price_group: str = "",
+    language: str ="EN",
+    commissions_service: CommissionsService = Depends(get_comisiones_service)
 ):
     try :
-        facturas = await commissions_service.obtener_facturas(year, month, personnel_number)
+        billing_documents = await commissions_service.getBillingDocuments(year, month, personnel_number, customer_price_group, language)
         response_content = {
-            "returnData": [factura.serialize() for factura in facturas],
+            "returnData": [billing_document.serialize() for billing_document in billing_documents],
             "displayMessage": "Billing documents successfully retrieved."
         }
         status_code = 200
@@ -97,20 +96,20 @@ class ClosingCycleData(BaseModel):
     year: int
     month: int
     user: str
+    personnel_number: str = "0"
+    customer_price_group: str = ""
+    language: str = "EN"
 
 @business_logic_router.post("/close_billing_cycle")
-async def close_billing_cycle(request: Request, data: ClosingCycleData, commissions_service: ComisionesService = Depends(get_comisiones_service)):
+async def close_billing_cycle(request: Request, closingCycleData: ClosingCycleData, commissions_service: CommissionsService = Depends(get_comisiones_service)):
     try:
-        sap_response = await commissions_service.cerrar_corte(data.year, data.month, data.user)
+        sap_response = await commissions_service.close_monthly_cut(**closingCycleData.dict())
         response_content = {
             "returnData": sap_response,
             "displayMessage": "Billing cycle closed successfully."
         }
         status_code = 200
-    except BillingCycleDoesNotExistError as e:
-        response_content = str(e)
-        status_code = 409
-    except ClosedBillingCycleError as e:
+    except (BillingCycleDoesNotExistError, ClosedBillingCycleError) as e:
         response_content = str(e)
         status_code = 409
     except Exception as e:

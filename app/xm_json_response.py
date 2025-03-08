@@ -6,7 +6,7 @@ from typing import Any
 from dicttoxml import dicttoxml
 from fastapi import Request
 from fastapi.responses import JSONResponse, Response
-
+from datetime import datetime, UTC
 
 class JsonOrXmlResponse(Response):
 
@@ -15,7 +15,7 @@ class JsonOrXmlResponse(Response):
         self.content = {
             "data": content,
             "metadata": {
-                "timestamp": datetime.datetime.utcnow().isoformat() + 'Z',
+                "timestamp": datetime.now(UTC).isoformat() + 'Z',
                 "responseId": self.response_id
             }
         }
