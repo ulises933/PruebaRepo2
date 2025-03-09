@@ -1,5 +1,6 @@
 from fastapi import Depends
 from sqlalchemy.orm import Session
+from app.bussiness_logic.user_info_service import UserInfoService
 from app.database import get_db
 from .sap_api_service import SAPApiService
 from .sap_odata_service import SAPODataService
@@ -9,6 +10,9 @@ from .factura_tracking_service import BillingDocumentTrackingService
 from .partner_commission_configuration_service import PartnerCommissionConfigurationService
 from .corte_mensual_service import MonthlyCutService
 from .comisiones_service import CommissionsService
+
+def get_user_info_service() -> UserInfoService:
+    return UserInfoService()
 
 def get_sap_api_service() -> SAPApiService:
     return SAPApiService()

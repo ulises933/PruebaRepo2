@@ -2,30 +2,24 @@ import pandas as pd
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from trino.dbapi import connect
+from typing import List, Dict, Any
+import logging
 
 from app.env_variables import TRINO_USER, TRINO_HOST, TRINO_PORT
 from app.bussiness_logic.db_models import Base
 import re
 
 
-class SQLOperations:
+class TrinoOperations:
 
     def __init__(self, catalog: str):
         self.conn = connect(
             host=TRINO_HOST,
             port=TRINO_PORT,
             user=TRINO_USER,
-            catalog=catalog.lower(),
-            schema='default',  # Replace with your schema
-            http_scheme='http',
-            verify=False
+            catalog=catalog
         )
-
-        # Create the SQLAlchemy engine using the Trino connection
-        self.engine = create_engine(
-            'trino://',
-            creator=lambda: self.conn
-        )
+        self.cursor = self.conn.cursor()
 
     def execute_query(self, modelo: Base, *filters, joins=None, join_columns=None, page_size: int = 10,
                       page_number: int = 1, order_by: str = None):
@@ -123,8 +117,44 @@ class SQLOperations:
         session.query(modelo).filter(*filters).update(**updated_data)
         self._commit_close_session(session)
 
-    def execute_simple_select(self, fields: str, table: str, conditions: str):
-        return self.execute_query(f'SELECT {fields} FROM {table} WHERE {conditions}')
+    def execute_simple_select(self, table: str, fields: List[str], conditions: Dict[str, Any]) -> List[Dict]:
+        """
+        Execute a simple SELECT query with WHERE conditions
+        Args:
+            table: Table name (including schema)
+            fields: List of field names to select
+            conditions: Dictionary of field:value pairs for WHERE clause
+        Returns:
+            List of dictionaries containing the results
+        """
+        try:
+            # Build the WHERE clause from conditions
+            where_clauses = []
+            for field, value in conditions.items():
+                clause_value = f"'{value}'" if isinstance(value, str) else value
+                where_clauses.append(f"{field} = {clause_value}")
+            
+            where_clause = " AND ".join(where_clauses)
+            fields_str = ", ".join(fields)
+            
+            query = f"SELECT {fields_str} FROM {table}"
+            if where_clause:
+                query += f" WHERE {where_clause}"
+            query += " LIMIT 1"
+
+            self.cursor.execute(query)
+            columns = [desc[0] for desc in self.cursor.description]
+            results = []
+            
+            for row in self.cursor.fetchall():
+                results.append(dict(zip(columns, row)))
+                
+            return results
+
+        except Exception as e:
+            logging.error(f"Error executing Trino query: {str(e)}")
+            logging.error(f"Query was: {query}")
+            return []
 
     def execute_query_no_orm(self, query, params=None):
         with self.engine.connect() as conn:
@@ -149,3 +179,10 @@ class SQLOperations:
     def _commit_close_session(session):
         session.commit()
         session.close()
+
+    def close(self):
+        """Close the Trino connection"""
+        if self.cursor:
+            self.cursor.close()
+        if self.conn:
+            self.conn.close()

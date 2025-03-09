@@ -1,17 +1,23 @@
-from fastapi import APIRouter, Request, Depends
-from app.bussiness_logic.dependencies import get_billing_doc_tracking_service, get_monthly_cut_service, get_comisiones_service, get_partner_catalog_service, get_partner_commission_configuration_service
-from app.bussiness_logic.factura_tracking_service import BillingDocumentTrackingService
-from app.bussiness_logic.corte_mensual_service import MonthlyCutService
-from app.bussiness_logic.partner_catalog_service import PartnerCatalogService
-from app.bussiness_logic.partner_commission_configuration_service import PartnerCommissionConfigurationService, PartnerConfiguration
-from pydantic import BaseModel
-from typing import List, Optional
-from app.bussiness_logic.db_models import BillingDocumentStatus
-from app.bussiness_logic.comisiones_service import CommissionsService
-from app.xm_json_response import JsonOrXmlResponse
-from app.exception import BillingDocumentOutOfBillingCycleError, BillingCycleDoesNotExistError, BillingDocumentDoesNotExistError,ClosedBillingCycleError
-
 import logging
+from typing import List, Optional
+
+from fastapi import APIRouter, Request, Depends
+from pydantic import BaseModel
+
+from app.bussiness_logic.comisiones_service import CommissionsService
+from app.bussiness_logic.corte_mensual_service import MonthlyCutService
+from app.bussiness_logic.db_models import BillingDocumentStatus
+from app.bussiness_logic.dependencies import get_billing_doc_tracking_service, get_monthly_cut_service, \
+    get_comisiones_service, get_partner_catalog_service, get_partner_commission_configuration_service
+from app.bussiness_logic.dependencies import get_user_info_service
+from app.bussiness_logic.factura_tracking_service import BillingDocumentTrackingService
+from app.bussiness_logic.partner_catalog_service import PartnerCatalogService
+from app.bussiness_logic.partner_commission_configuration_service import PartnerCommissionConfigurationService, \
+    PartnerConfiguration
+from app.bussiness_logic.user_info_service import UserInfoService
+from app.exception import BillingDocumentOutOfBillingCycleError, BillingCycleDoesNotExistError, \
+    BillingDocumentDoesNotExistError, ClosedBillingCycleError
+from app.xm_json_response import JsonOrXmlResponse
 
 business_logic_router = APIRouter()
 
@@ -122,6 +128,50 @@ async def close_billing_cycle(request: Request, closingCycleData: ClosingCycleDa
         status_code = 500
     return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
 
+
+class SSO_token(BaseModel):
+    token: str
+
+@business_logic_router.post("/validate_sso_token")
+async def validate_sso_token(
+    request: Request,
+    sso_token: SSO_token,
+    user_info_service: UserInfoService = Depends(get_user_info_service)
+):
+    try:
+        user_info = await user_info_service.get_user_info_from_token_SSO(sso_token.token)
+        if not user_info:
+            response_content = {
+                "errorMessage": "Invalid or expired token", 
+                "displayMessage": "Could not validate SSO token"
+            }
+            status_code = 401
+        else:
+            # Get legacy user info using email from SSO
+            legacy_user_info = await user_info_service.get_user_info_from_legacy_system(user_info.get("email"))
+            
+            # Combine SSO and legacy user info
+            user_info.update({
+                "legacy_info": legacy_user_info
+            })
+            
+            response_content = {
+                "returnData": user_info,
+                "displayMessage": "Token validated successfully"
+            }
+            status_code = 200
+            
+    except Exception as e:
+        logging.exception(e)
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error validating SSO token"
+        }
+        status_code = 500
+
+    return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
+
+
 @business_logic_router.get("/partners")
 async def get_partners(request: Request, customer_price_group: Optional[str] = None, partner_catalog_service: PartnerCatalogService = Depends(get_partner_catalog_service)):
     try:
@@ -184,3 +234,4 @@ async def get_partner_configurations(request: Request, customer_price_group: str
         }
         status_code = 500
     return JsonOrXmlResponse(content= response_content, request=request, status_code=status_code)
+

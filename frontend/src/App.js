@@ -2,17 +2,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MsalProvider } from "@azure/msal-react";
 import { AuthProvider } from "./context/AuthContext";
 import { LanguageProvider } from "./context/LanguageContext";
-
 import Login from "./pages/Login";
+import { AuthProviderSSO } from "./context/AuthContextSSO";
 import CommissionsSummary from "./pages/CommissionsSummary";
 import PaymentsControl from "./pages/PaymentsControl";
 import PrivateRoute from "./components/PrivateRoute";
-import { AuthProviderSSO } from "./context/AuthContextSSO";
+import MonthlyCutSummary from "./pages/MonthlyCutSummary"; // NEW
 
-/**
- * App sets up routing and contexts for authentication and language.
- * PrivateRoute ensures certain pages are accessible only if logged in.
- */
 function App({ msalInstance }) {
   return (
     <MsalProvider instance={msalInstance}>
@@ -21,10 +17,10 @@ function App({ msalInstance }) {
           <AuthProvider>
             <BrowserRouter>
               <Routes>
-                {/* Public Route: Login */}
+                {/* Public: login */}
                 <Route path="/" element={<Login />} />
 
-                {/* Protected Routes */}
+                {/* Protected routes */}
                 <Route element={<PrivateRoute />}>
                   <Route
                     path="/commissions-summary"
@@ -33,6 +29,12 @@ function App({ msalInstance }) {
                   <Route
                     path="/payments-control"
                     element={<PaymentsControl />}
+                  />
+
+                  {/* New route for monthly cut summary: /monthly-cut/2025/1 */}
+                  <Route
+                    path="/monthly-cut/:year/:month"
+                    element={<MonthlyCutSummary />}
                   />
                 </Route>
               </Routes>

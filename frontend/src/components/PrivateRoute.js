@@ -10,33 +10,18 @@ function PrivateRoute({ requiredRole }) {
   const { isAuthenticated, user } = useAuth();
   const { isSSOAuthenticated, ssoUser } = useAuthSSO();
 
-  //Remove this later
-  console.log("isAuthenticated", isAuthenticated);
-  console.log("isSSOAuthenticated", isSSOAuthenticated);
-
   // Check if user is authenticated either through regular login or SSO
   const isUserAuthenticated = isAuthenticated || isSSOAuthenticated;
-  const activeUser = isAuthenticated
-    ? user
-    : isSSOAuthenticated
-    ? ssoUser
-    : null;
+  const activeUser = isAuthenticated ? user : ssoUser;
 
-  // If user is not logged in through either method, redirect to '/'
-  if (!isUserAuthenticated && !isSSOAuthenticated) {
+  // If user is not authenticated at all, redirect to login
+  if (!isUserAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
-  // If we require a specific role and user doesn't match, redirect or hide
-  if (requiredRole) {
-    // For regular login, check user role
-    if (isAuthenticated && user?.role !== requiredRole) {
-      return <Navigate to="/commissions-summary" replace />;
-    }
-    // For SSO login, check ssoUser role
-    if (isSSOAuthenticated && ssoUser?.role !== requiredRole) {
-      return <Navigate to="/commissions-summary" replace />;
-    }
+  // If we require a specific role and user doesn't match, redirect
+  if (requiredRole && activeUser?.role !== requiredRole) {
+    return <Navigate to="/commissions-summary" replace />;
   }
 
   // Render child components if everything is valid
