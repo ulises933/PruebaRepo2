@@ -131,10 +131,8 @@ class TrinoOperations:
             # Build the WHERE clause from conditions
             where_clauses = []
             for field, value in conditions.items():
-                if isinstance(value, str):
-                    where_clauses.append(f"{field} = '{value}'")
-                else:
-                    where_clauses.append(f"{field} = {value}")
+                clause_value = f"'{value}'" if isinstance(value, str) else value
+                where_clauses.append(f"{field} = {clause_value}")
             
             where_clause = " AND ".join(where_clauses)
             fields_str = ", ".join(fields)

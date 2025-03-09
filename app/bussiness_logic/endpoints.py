@@ -162,6 +162,7 @@ async def validate_sso_token(
             status_code = 200
             
     except Exception as e:
+        logging.exception(e)
         response_content = {
             "errorMessage": str(e),
             "displayMessage": "Error validating SSO token"
