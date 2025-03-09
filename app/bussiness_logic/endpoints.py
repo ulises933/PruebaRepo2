@@ -1,53 +1,60 @@
-from fastapi import APIRouter, Request, Depends
-from app.bussiness_logic.dependencies import get_factura_tracking_service, get_corte_mensual_service, get_comisiones_service, get_legacy_system_service, get_user_info_service
-from app.bussiness_logic.factura_tracking_service import FacturaTrackingService
-from app.bussiness_logic.corte_mensual_service import CorteMensualService
-from pydantic import BaseModel
-from typing import List
-from app.bussiness_logic.db_models import EstatusFactura
-from app.bussiness_logic.comisiones_service import ComisionesService
-from app.bussiness_logic.legacy_system_service import LegacySystemService
-from app.bussiness_logic.user_info_service import UserInfoService
-from app.xm_json_response import JsonOrXmlResponse
-from app.exception import BillingDocumentOutOfBillingCycleError, BillingCycleDoesNotExistError, BillingDocumentDoesNotExistError,ClosedBillingCycleError
+import logging
+from typing import List, Optional
 
+from fastapi import APIRouter, Request, Depends
+from pydantic import BaseModel
+
+from app.bussiness_logic.comisiones_service import CommissionsService
+from app.bussiness_logic.corte_mensual_service import MonthlyCutService
+from app.bussiness_logic.db_models import BillingDocumentStatus
+from app.bussiness_logic.dependencies import get_billing_doc_tracking_service, get_monthly_cut_service, \
+    get_comisiones_service, get_partner_catalog_service, get_partner_commission_configuration_service
+from app.bussiness_logic.dependencies import get_user_info_service
+from app.bussiness_logic.factura_tracking_service import BillingDocumentTrackingService
+from app.bussiness_logic.partner_catalog_service import PartnerCatalogService
+from app.bussiness_logic.partner_commission_configuration_service import PartnerCommissionConfigurationService, \
+    PartnerConfiguration
+from app.bussiness_logic.user_info_service import UserInfoService
+from app.exception import BillingDocumentOutOfBillingCycleError, BillingCycleDoesNotExistError, \
+    BillingDocumentDoesNotExistError, ClosedBillingCycleError
+from app.xm_json_response import JsonOrXmlResponse
 
 business_logic_router = APIRouter()
 
-class Factura(BaseModel):
+class BillingDocument(BaseModel):
     id: int
-    estatus: EstatusFactura
-    id_corte: int
+    status: BillingDocumentStatus
+    monthly_cut_id: int
 
-class FacturasRequest(BaseModel):
-    facturas_modificadas: List[Factura]
-    usuario_modificador: str
+class BillingDocumentRequest(BaseModel):
+    modified_billing_docs: List[BillingDocument]
+    user_mod: str
 
-@business_logic_router.get("/facturas")
-async def obtener_facturas(request:Request, factura_service:FacturaTrackingService=Depends(get_factura_tracking_service)):
-    facturas = factura_service.obtener_facturas_comisionables()
-    response_content = [factura.serialize() for factura in facturas]
+@business_logic_router.get("/billing_documents")
+async def getBillingDocuments(request:Request, billing_doc_tracking_service:BillingDocumentTrackingService=Depends(get_billing_doc_tracking_service)):
+    billing_documents = billing_doc_tracking_service.get_billing_documents()
+    response_content = [billing_document.serialize() for billing_document in billing_documents]
     status_code = 200
     return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
 
 
-@business_logic_router.get("/cortes")
-async def obtener_cortes(request:Request, corte_service:CorteMensualService=Depends(get_corte_mensual_service)):
-    cortes = corte_service.obtener_cortes()
-    response_content = [corte.serialize() for corte in cortes]
+@business_logic_router.get("/monthly_cut")
+async def get_monthly_cuts(request:Request, monthly_cut_service:MonthlyCutService=Depends(get_monthly_cut_service)):
+    monthly_cuts = monthly_cut_service.get_monthly_cuts()
+    response_content = [monthly_cut.serialize() for monthly_cut in monthly_cuts]
     status_code = 200
     return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
 
 @business_logic_router.post("/guardar_cambios")
 async def guardar_cambios(
     request: Request,
-    facturas_request:FacturasRequest,
-    comisiones_service: ComisionesService = Depends(get_comisiones_service)
+    billing_doc_request:BillingDocumentRequest,
+    commissions_service: CommissionsService = Depends(get_comisiones_service)
 ):
-    facturas_modificadas = facturas_request.facturas_modificadas
-    usuario_modificador = facturas_request.usuario_modificador
+    modified_billing_docs = billing_doc_request.modified_billing_docs
+    user_mod = billing_doc_request.user_mod
     try:
-        await comisiones_service.actualizar_estatus_facturas(facturas_modificadas, usuario_modificador)
+        commissions_service.update_billing_document_status(modified_billing_docs, user_mod)
         response_content = {
             "returnData": "",
             "displayMessage": "Billing documents successfully updated."
@@ -75,12 +82,12 @@ async def comission_summary(
     personnel_number: str = "0",
     customer_price_group: str = "",
     language: str ="EN",
-    commissions_service: ComisionesService = Depends(get_comisiones_service)
+    commissions_service: CommissionsService = Depends(get_comisiones_service)
 ):
     try :
-        facturas = await commissions_service.obtener_facturas(year, month, personnel_number, customer_price_group, language)
+        billing_documents = await commissions_service.getBillingDocuments(year, month, personnel_number, customer_price_group, language)
         response_content = {
-            "returnData": [factura.serialize() for factura in facturas],
+            "returnData": [billing_document.serialize() for billing_document in billing_documents],
             "displayMessage": "Billing documents successfully retrieved."
         }
         status_code = 200
@@ -102,9 +109,9 @@ class ClosingCycleData(BaseModel):
     language: str = "EN"
 
 @business_logic_router.post("/close_billing_cycle")
-async def close_billing_cycle(request: Request, closingCycleData: ClosingCycleData, commissions_service: ComisionesService = Depends(get_comisiones_service)):
+async def close_billing_cycle(request: Request, closingCycleData: ClosingCycleData, commissions_service: CommissionsService = Depends(get_comisiones_service)):
     try:
-        sap_response = await commissions_service.cerrar_corte(**closingCycleData.dict())
+        sap_response = await commissions_service.close_monthly_cut(**closingCycleData.model_dump())
         response_content = {
             "returnData": sap_response,
             "displayMessage": "Billing cycle closed successfully."
@@ -120,6 +127,7 @@ async def close_billing_cycle(request: Request, closingCycleData: ClosingCycleDa
         }
         status_code = 500
     return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
+
 
 class SSO_token(BaseModel):
     token: str
@@ -161,4 +169,68 @@ async def validate_sso_token(
         status_code = 500
 
     return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
+
+
+@business_logic_router.get("/partners")
+async def get_partners(request: Request, customer_price_group: Optional[str] = None, partner_catalog_service: PartnerCatalogService = Depends(get_partner_catalog_service)):
+    try:
+        partners = await partner_catalog_service.get_partners(customer_price_group)
+        response_content = partners
+        status_code = 200
+    except Exception as e:
+        logging.exception(e)
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to retrieve partners catalog."
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content= response_content, request=request, status_code=status_code)
+
+@business_logic_router.post("/partner_configuration")
+async def createPartnerConfiguration(request:Request, partner_configuration: PartnerConfiguration, user_mod: str, partner_commission_configuration_service:PartnerCommissionConfigurationService=Depends(get_partner_commission_configuration_service)):
+    try:
+        partner_configuration = partner_commission_configuration_service.createConfiguration(partner_configuration, user_mod)
+        response_content = partner_configuration.serialize()
+        status_code = 200
+    except Exception as e:
+        logging.exception(e)
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to create a partner configuration."
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
+
+@business_logic_router.patch("/partner_configuration")
+async def updatePartnerConfiguration(request:Request, partner_configurations: List[PartnerConfiguration], user_mod: str, partner_commission_configuration_service:PartnerCommissionConfigurationService=Depends(get_partner_commission_configuration_service)):
+    try:
+        updated_configurations = []
+        for partner_configuration in partner_configurations:
+            updated_configuration = partner_commission_configuration_service.updateConfiguration(partner_configuration, user_mod)
+            updated_configurations.append(updated_configuration.serialize())
+        response_content = updated_configurations
+        status_code = 200
+    except Exception as e:
+        logging.exception(e)
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to update a partner configuration."
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
+
+@business_logic_router.get("/partner_configurations")
+async def get_partner_configurations(request: Request, customer_price_group: str, partner_commission_configuration_service:PartnerCommissionConfigurationService=Depends(get_partner_commission_configuration_service)):
+    try:
+        partner_configurations = partner_commission_configuration_service.listConfigurations(customer_price_group)
+        response_content = [partner_configuration.serialize() for partner_configuration in partner_configurations]
+        status_code = 200
+    except Exception as e:
+        logging.exception(e)
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to retrieve partner configurations"
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content= response_content, request=request, status_code=status_code)
 

@@ -1,14 +1,12 @@
 from typing import Dict, List
 from datetime import datetime
+from app.utils.billing_document_utils import get_partner_info
 
 class FacturaViewFormatter:
     @staticmethod
-    def _get_vendedor(factura_sap: Dict) -> str:
+    def _get_vendedor(billing_document: Dict) -> str:
         """Extrae el nombre del vendedor de la estructura de la factura"""
-        item_type = factura_sap["to_Item"]["A_BillingDocumentItemType"]
-        if isinstance(item_type, dict):
-            return item_type["to_Partner"]["A_BillingDocumentItemPartnerType"]["FullName"]
-        return item_type[0]["to_Partner"]["A_BillingDocumentItemPartnerType"]["FullName"]
+        return get_partner_info(billing_document, lambda partner: partner["FullName"])
 
     @staticmethod
     def format_for_view(factura_sap: Dict, tracking_data: Dict) -> Dict:
