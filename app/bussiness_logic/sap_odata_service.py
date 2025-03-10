@@ -1,9 +1,9 @@
 from app.env_variables import SAP_ODATA_URL, SAP_ODATA_CLIENT_ID, SAP_ODATA_CLIENT_SECRET
 import base64
 from typing import List, Dict
-from datetime import datetime
+from datetime import datetime, UTC
 import aiohttp
-from app.bussiness_logic.db_models import FacturaTracking
+from app.bussiness_logic.db_models import BillingDocumentTracking
 
 class SAPODataService:
     def __init__(self):
@@ -18,14 +18,14 @@ class SAPODataService:
         token = base64.b64encode(credentials.encode()).decode()
         return token
 
-    async def send_invoice_to_sap(self, comission_billing_documents: List[FacturaTracking], user: str):
-        """Send monthly cut using OData"""
+    async def send_invoice_to_sap(self, comission_billing_documents: List[BillingDocumentTracking], user: str):
+        """Sends commission imports by agent to SAP"""
         json_data = self.build_json_body(comission_billing_documents, user)
         response = await self.make_request_call(json_data)
         return response
 
     async def make_request_call(self, json_data: Dict):
-        """Sends the journal entry to the SAP API"""
+        """Builds a journal entry to be sent using SAP's API"""
         url = self.api_url
         headers = {
             "Content-Type": "application/json",
@@ -43,7 +43,7 @@ class SAPODataService:
                     return text
                       
 
-    def build_json_body(self, data: List[FacturaTracking], user) -> Dict:
+    def build_json_body(self, data: List[BillingDocumentTracking], user) -> Dict:
         
         original_reference_document_type = "BKPFF"
         business_transaction_type = "RFBU"
@@ -67,7 +67,7 @@ class SAPODataService:
             items.append({
                 "ReferenceDocumentItem": tracking.billing_document,
                 "GLAccount": gl_account,
-                "AmountInTransactionCurrency": tracking.importe_comision,
+                "AmountInTransactionCurrency": tracking.commission_amount,
                 "CurrencyCode": currency_code,
                 "DebitCreditCode": debit_credit_code,
                 "DocumentItemText": f"Comisión para {tracking.billing_document}",
@@ -91,8 +91,8 @@ class SAPODataService:
                     "DocumentHeaderText": document_header_text,
                     "CreatedByUser": created_by_user,
                     "CompanyCode": company_code,
-                    "DocumentDate": datetime.utcnow().isoformat(),
-                    "PostingDate": datetime.utcnow().isoformat(),
+                    "DocumentDate": datetime.now(UTC).isoformat(),
+                    "PostingDate": datetime.now(UTC).isoformat(),
                     "Item": items,
                     # TODO: Check if other items are mandatory
                 }

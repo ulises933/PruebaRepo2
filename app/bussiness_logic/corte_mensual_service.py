@@ -1,70 +1,77 @@
-from datetime import datetime
-from typing import Optional, Dict
+from datetime import datetime, UTC
+from typing import Optional, Dict, List
 from sqlalchemy.orm import Session
-from app.bussiness_logic.db_models import CorteComision, EstatusCorte
+from app.bussiness_logic.db_models import MonthlyCut, MonthlyCutStatus
 from app.exception import BillingCycleDoesNotExistError, ClosedBillingCycleError
 import logging
 
-class CorteMensualService:
+class MonthlyCutService:
     def __init__(self, db: Session):
         self.db = db
 
-    def obtener_cortes(self) -> Optional[CorteComision]:
-        """Enlista todos los cortes"""
-        return self.db.query(CorteComision)\
-            .order_by(CorteComision.anio_mes.desc())
+    @staticmethod
+    def get_current_period():
+        return datetime.now(UTC).strftime('%Y%m')
 
-    def obtener_corte_actual(self) -> Optional[CorteComision]:
-        """Obtiene el corte abierto más reciente"""
-        return self.db.query(CorteComision)\
-            .filter_by(estatus=EstatusCorte.ABIERTO)\
-            .order_by(CorteComision.anio_mes.desc())\
+    def get_monthly_cuts(self) -> List[MonthlyCut]:
+        """Lists every monthly cut"""
+        return self.db.query(MonthlyCut)\
+            .order_by(MonthlyCut.year_month.desc()).all()
+
+    def get_current_monthly_cut(self) -> Optional[MonthlyCut]:
+        """Gets the most recent open monthly cut"""
+        return self.db.query(MonthlyCut)\
+            .filter_by(status=MonthlyCutStatus.OPEN)\
+            .order_by(MonthlyCut.year_month.desc())\
             .first()
 
-    def obtener_corte_por_id(self, id: int) -> Optional[CorteComision]:
-        """Obtiene un corte por el id especificado"""
-        corte = self.db.query(CorteComision).get(id)
+    def get_monthly_cut_by_id(self, id: int) -> Optional[MonthlyCut]:
+        """Gets a monthly cut by a specific id"""
+        monthly_cut = self.db.query(MonthlyCut).get(id)
         
-        if not corte:
+        if not monthly_cut:
             raise BillingCycleDoesNotExistError(message=f"There is no billing cycle with the specified id ({id}).")
+        return monthly_cut
 
-    async def obtener_corte_por_periodo(self, anio: int, mes: int) -> CorteComision:
-        """Obtiene un corte específico por período o crea uno nuevo si corresponde al mes actual."""
-        mes_str = str(mes).zfill(2)
-        anio_mes = f"{anio}{mes_str}"
-        corte = self.db.query(CorteComision).filter_by(anio_mes=anio_mes).first()
-        if not corte:
-            periodo_actual = datetime.utcnow().strftime('%Y%m')
-            if anio_mes == periodo_actual:
-                logging.info(f"Creando nuevo registro para corte del periodo {anio_mes}")
-                corte = await self.abrir_nuevo_corte(anio_mes, "Sistema")  
+    async def get_monthly_cut_by_period(self, year: int, month: int) -> MonthlyCut:
+        """Gets a monthly cut by a specific period or creates a new monthly cut is there isn't one if the specified period is the current period"""
+        month_str = str(month).zfill(2)
+        year_month = f"{year}{month_str}"
+        monthly_cut = self.db.query(MonthlyCut).filter_by(year_month=year_month).first()
+        if not monthly_cut:
+            current_period = self.get_current_period()
+            if year_month == current_period:
+                logging.info(f"Creating a new monthly cut for the {year_month} period.")
+                monthly_cut = await self.create_monthly_cut(year_month, "System")  
             else:
-                logging.error(f"El periodo de corte especificado ({anio_mes}) no corresponde con un corte existente)")
-                raise BillingCycleDoesNotExistError(message=f"There is no billing cycle for the specified period ({anio_mes}).")
-        return corte
+                logging.error(f"There is no monthly cut for the specified period ({year_month}).")
+                raise BillingCycleDoesNotExistError(message=f"There is no billing cycle for the specified period ({year_month}).")
+        return monthly_cut
 
-    async def abrir_nuevo_corte(self, anio_mes: int, usuario: str) -> CorteComision:
-        """Abre un nuevo corte para el período especificado"""
-        corte_existente = self.db.query(CorteComision).filter_by(anio_mes=anio_mes).first()
-        #TODO: Mejor cachar error por anio_mes existente al intentar crear un nuevo registro
-        if corte_existente:
-            if corte_existente.estatus == EstatusCorte.CERRADO:
-                raise PeriodClosedError(f"Ya existe un corte cerrado para el período {anio_mes}")
-            return corte_existente
-        
-        nuevo_corte = CorteComision(
-            anio_mes=anio_mes,
-            estatus=EstatusCorte.ABIERTO,
-            fecha_creacion=datetime.utcnow(),
-            fecha_ultima_mod=datetime.utcnow(),
-            usuario_mod=usuario,
-        )
-        
-        self.db.add(nuevo_corte)
-        self.db.commit()
-        return nuevo_corte
+    async def create_monthly_cut(self, year_month: int, usuario: str) -> MonthlyCut:
+        """Creates a new monthly cut with Open status for the specified period or returns an existing monthly cut if status is Open."""
+        existing_monthly_cut = self.db.query(MonthlyCut).filter_by(year_month=year_month).first()
+        #TODO: Mejor cachar error por year_month existente al intentar crear un nuevo registro
+        montlhy_cut = None
+        if existing_monthly_cut:
+            monthly_cut = existing_monthly_cut
+            if existing_monthly_cut.status == MonthlyCutStatus.CLOSED:
+                raise ClosedBillingCycleError(f"A monthly cut for the period {year_month} already exist.")
+        else:
+            new_monthly_cut = MonthlyCut(
+                year_month=year_month,
+                status=MonthlyCutStatus.OPEN,
+                date_created=datetime.now(UTC),
+                last_modified_date=datetime.now(UTC),
+                last_modified_user=usuario,
+            )
+            
+            self.db.add(new_monthly_cut)
+            self.db.commit()
+            monthly_cut = new_monthly_cut
+        return monthly_cut
 
-    async def cerrar_corte(
+    async def close_monthly_cut(
         self, 
         year: int,
         month: int, 
@@ -72,33 +79,33 @@ class CorteMensualService:
         open_next: bool = False
     ) -> Dict:
         """
-        Cierra el corte actual y opcionalmente abre el siguiente
+        Closes the specified monthly cut and optionally creates a new one.
         """
-        corte = await self.obtener_corte_por_periodo(year,month)
+        monthly_cut = await self.get_monthly_cut_by_period(year,month)
 
-        if corte.estatus == EstatusCorte.CERRADO:
-            raise ClosedBillingCycleError(message=f"El corte del período {year}{month} ya está cerrado")
+        if monthly_cut.status == MonthlyCutStatus.CLOSED:
+            raise ClosedBillingCycleError(message=f"Monthly cut for period {year}{str(month).zfill(2)} is already closed.")
 
-        corte.estatus = EstatusCorte.CERRADO
-        corte.fecha_ultima_mod = datetime.utcnow()
-        corte.usuario_mod = user
+        monthly_cut.status = MonthlyCutStatus.CLOSED
+        monthly_cut.last_modified_date = datetime.now(UTC)
+        monthly_cut.last_modified_user = user
         self.db.commit()
 
-        siguiente_corte = None
+        next_monthly_cut = None
         if open_next == True:
-            siguiente_anio_mes = self._calcular_siguiente_periodo(year, month)
-            siguiente_corte = await self.abrir_nuevo_corte(
-                siguiente_anio_mes,
+            next_monthly_cut_period = self._calcular_siguiente_periodo(year, month)
+            next_monthly_cut = await self.create_monthly_cut(
+                next_monthly_cut_period,
                 user,
             )
 
         return {
-            "corte_cerrado": corte,
-            "siguiente_corte": siguiente_corte
+            "closed_monthly_cut": monthly_cut,
+            "next_monthly_cut": next_monthly_cut
         }
 
-    def _calcular_siguiente_periodo(self, year: int, month: int) -> int:
-        """Calcula el siguiente período en formato YYYYMM"""
+    def _calculate_next_period(self, year: int, month: int) -> int:
+        """Calculates the next period and returns it in the 'YYYYMM' format."""
         
         if month == 12:
             return f"{year + 1}{1}"
