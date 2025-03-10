@@ -6,6 +6,7 @@
     "@emotion/react": "^11.10.6",
     "@emotion/styled": "^11.10.6",
     "@mui/material": "^5.16.14",
+    "@mui/icons-material": "^5.16.14",
     "cra-template": "1.2.0",
     "i18next": "^24.2.2",
     "react": "^19.0.0",

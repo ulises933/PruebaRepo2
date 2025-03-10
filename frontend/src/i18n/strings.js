@@ -22,10 +22,12 @@ export const strings = {
     sellerFilter: "Seller",
     statusFilter: "Status",
     invoiceId: "Invoice ID",
+    billingDocument: "Billing Document",
     sellerName: "Seller Name",
     invoiceNumber: "Invoice Number",
     invoiceDate: "Invoice Date",
     totalAmount: "Total Amount",
+    totalCommission: "Total Commission",
     articles: "Commissionable Articles",
     payStatus: "Payable",
     currentStatus: "Current Status",
@@ -33,6 +35,10 @@ export const strings = {
     generateMonthlyCut: "Generate Monthly Cut",
     pending: "Pending",
     paid: "Paid",
+    actions: "Actions",
+    materialCode: "Material Code",
+    amount: "Amount",
+    commission: "Commission",
     // Payments Control
     paymentsTitle: "Payments Control",
     paymentDate: "Payment Date (YYYY-MM-DD)",
@@ -40,8 +46,13 @@ export const strings = {
     paymentId: "Invoice ID (SAP)",
     // Dropdown pay statuses
     payable: "Payable",
-    notPayable: "Not payable",
+    notPayable: "Not Payable", // Fixed capitalization
     pendingPayable: "Pending",
+    selectPeriod: "Select Period",
+    clearFilter: "Clear Filter", // Fixed capitalization
+    searchSeller: "Search Seller", // Fixed capitalization
+    status: "Status", // Added missing status label used in StatusSelect
+    filters: "Filters", // Added new translation
   },
   es: {
     // Common
@@ -62,10 +73,12 @@ export const strings = {
     sellerFilter: "Vendedor",
     statusFilter: "Estado",
     invoiceId: "ID de Factura",
+    billingDocument: "Documento de Facturación",
     sellerName: "Nombre del Vendedor",
     invoiceNumber: "Número de Factura",
     invoiceDate: "Fecha de Factura",
     totalAmount: "Importe Total",
+    totalCommission: "Comisión Total",
     articles: "Artículos Comisionables",
     payStatus: "Pagable",
     currentStatus: "Estado Actual",
@@ -73,6 +86,10 @@ export const strings = {
     generateMonthlyCut: "Generar Corte Mensual",
     pending: "Pendiente",
     paid: "Pagado",
+    actions: "Acciones",
+    materialCode: "Código de Material",
+    amount: "Importe",
+    commission: "Comisión",
     // Payments Control
     paymentsTitle: "Control de Pagos",
     paymentDate: "Fecha de Pago (AAAA-MM-DD)",
@@ -82,5 +99,10 @@ export const strings = {
     payable: "Pagable",
     notPayable: "No Pagable",
     pendingPayable: "Pendiente",
+    selectPeriod: "Seleccionar Período",
+    clearFilter: "Limpiar Filtro", // Fixed capitalization
+    searchSeller: "Buscar Vendedor", // Fixed capitalization
+    status: "Estado", // Added missing status label used in StatusSelect
+    filters: "Filtros", // Added new translation
   },
 };

@@ -1,14 +1,19 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
+import { useCommissions } from "../hooks/useCommissions";
+import { useFilter } from "../hooks/useFilter";
+import { usePagination } from "../hooks/usePagination";
+import { AlertModal } from "../components/common/AlertModal";
+import {
+  saveInvoiceStatuses,
+  closeBillingCycle,
+} from "../services/commissionsService";
+import Layout from "../components/Layout";
 import {
   Box,
   Typography,
-  Paper,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField,
-  Button,
   Table,
   TableBody,
   TableCell,
@@ -17,329 +22,328 @@ import {
   TableRow,
   Pagination,
   Stack,
+  Alert,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Button,
 } from "@mui/material";
-import Layout from "../components/Layout";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { ArticleDetails } from "../components/commissions/ArticleDetails";
+import { StatusSelect } from "../components/commissions/StatusSelect";
+import CommissionsFilters from "../components/commissions/CommissionsFilters";
+import { styled } from "@mui/material/styles";
+import dayjs from "dayjs";
 import {
-  getCommissionsSummary,
-  saveInvoiceStatuses,
-  closeBillingCycle,
-} from "../services/commissionsService";
-import { useAuth } from "../context/AuthContext";
-import { useLanguage } from "../context/LanguageContext";
-import { useNavigate } from "react-router-dom";
+  PageTitle,
+  StyledAlert,
+  StyledAccordion,
+  StyledTableCell,
+  PaginationWrapper,
+  ActionButtonsWrapper,
+  buttonStyles,
+  ContentWrapper,
+  BottomActionsContainer,
+} from "../components/commissions/styles/CommissionsStyles";
 
 /**
- * CommissionsSummary page that integrates with the real FastAPI backend:
- *  1) GET /comission_summary (to retrieve invoice data)
- *  2) POST /guardar_cambios (to update statuses)
- *  3) POST /close_billing_cycle (to close the month)
- *
- * The "estatus" field can be: "pagable", "no pagable", or "pendiente".
- * Each invoice has an "id" (DB ID), "billing_document", "estatus", "id_corte", etc.
+ * CommissionsSummary component displays a summary of commission data with filtering,
+ * pagination and status management capabilities.
  */
 function CommissionsSummary() {
   const navigate = useNavigate();
-  // We might want dynamic year/month in a real scenario,
-  // or let the user input them. For now, we fix them.
-  const [year, setYear] = useState(2025);
-  const [month, setMonth] = useState(1);
-  const [invoices, setInvoices] = useState([]);
-  const [filteredInvoices, setFilteredInvoices] = useState([]);
+  const { user } = useAuth();
+  const { t } = useLanguage();
 
-  // Additional filters
-  const [sellerFilter, setSellerFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  // Initialize date state with current year and month
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = dayjs();
+    return {
+      year: today.year(),
+      month: today.month() + 1, // dayjs months are 0-indexed
+    };
+  });
 
-  // For pagination
-  const [page, setPage] = useState(1);
-  const rowsPerPage = 5;
+  // Custom hooks for managing commissions data, filtering and pagination
+  const {
+    invoices,
+    setInvoices,
+    isLoading,
+    error: fetchError,
+    fetchCommissions,
+  } = useCommissions(selectedDate.year, selectedDate.month);
 
-  const { user } = useAuth(); // If we have a logged-in user with a name
-  const { t } = useLanguage(); // For i18n text
+  const {
+    filters,
+    filteredItems: filteredInvoices,
+    updateFilter,
+  } = useFilter(invoices, { seller: "", status: "" });
 
+  const {
+    page,
+    setPage,
+    paginatedItems: displayedInvoices,
+    pageCount,
+  } = usePagination(filteredInvoices);
+
+  // UI state management
+  const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingCut, setIsGeneratingCut] = useState(false);
+  const [alertModal, setAlertModal] = useState({ open: false });
+  const [expandedRow, setExpandedRow] = useState(null);
+
+  // Initial data fetch
   useEffect(() => {
-    // On mount (or if year/month changes), fetch real data from backend
-    fetchCommissionsData();
-    // eslint-disable-next-line
-  }, [year, month]);
+    fetchCommissions();
+  }, [selectedDate.year, selectedDate.month]);
 
-  useEffect(() => {
-    applyFilters();
-  }, [invoices, sellerFilter, statusFilter]);
+  // Handler for date filter changes
+  const handleDateChange = useCallback(
+    (year, month) => {
+      setSelectedDate({ year, month });
+      setPage(1); // Reset to first page when date changes
+    },
+    [setPage]
+  );
+
+  // Handler for status changes in individual invoices
+  const handleStatusChange = useCallback((id, newStatus) => {
+    setInvoices((prev) =>
+      prev.map((inv) => (inv.id === id ? { ...inv, estatus: newStatus } : inv))
+    );
+  }, []);
 
   /**
-   * BUSINESS: fetch real invoice data from backend for the specified year & month.
+   * Handles saving changes to invoice statuses
+   * Makes API call to save updated statuses and shows success/error message
    */
-  async function fetchCommissionsData() {
+  const handleSaveChanges = async () => {
+    if (isSaving) return;
+
     try {
-      // Example with default personnel_number, etc.
-      const result = await getCommissionsSummary({
-        year,
-        month,
-        personnel_number: "0",
-        customer_price_group: "",
-        language: "EN",
-      });
-      // "result" is an array of FacturaTracking objects
-      // Each has "id", "billing_document", "estatus", "articulos", "importe_total", etc.
-      setInvoices(result);
-    } catch (err) {
-      console.error(err);
-      setInvoices([]);
-      alert("Error fetching commissions summary");
-    }
-  }
-
-  /**
-   * TECHNICAL: Filter invoices locally by "seller" or "status".
-   * BUSINESS: Allows user to quickly find relevant items.
-   */
-  function applyFilters() {
-    let data = [...invoices];
-    if (sellerFilter) {
-      data = data.filter(
-        (inv) =>
-          inv.personnel_number
-            ?.toLowerCase()
-            .includes(sellerFilter.toLowerCase()) ||
-          inv.billing_document
-            ?.toLowerCase()
-            .includes(sellerFilter.toLowerCase())
-      );
-    }
-    if (statusFilter) {
-      data = data.filter((inv) => inv.estatus === statusFilter);
-    }
-    setFilteredInvoices(data);
-    setPage(1);
-  }
-
-  /**
-   * TECHNICAL: When user selects from dropdown "pagable"/"no pagable"/"pendiente", update the invoice's "estatus" in state.
-   */
-  function handleStatusChange(invoiceId, newStatus) {
-    const updated = invoices.map((inv) => {
-      if (inv.id === invoiceId) {
-        return { ...inv, estatus: newStatus };
-      }
-      return inv;
-    });
-    setInvoices(updated);
-  }
-
-  /**
-   * BUSINESS: Saves the changes by calling POST /guardar_cambios.
-   * We must pass:
-   * facturas_modificadas: [{ id, estatus, id_corte }, ...]
-   * usuario_modificador
-   */
-  async function handleSaveChanges() {
-    try {
-      const payload = invoices.map((inv) => ({
-        id: inv.id,
-        estatus: inv.estatus,
-        id_corte: inv.id_corte,
+      setIsSaving(true);
+      const payload = invoices.map(({ id, estatus, id_corte }) => ({
+        id,
+        estatus,
+        id_corte,
       }));
 
-      // Use the current user from AuthContext if available; fallback to "system_user"
-      const userName = user?.username || "system_user";
+      await saveInvoiceStatuses(payload, user?.username || "system_user");
 
-      await saveInvoiceStatuses(payload, userName);
-      alert("Changes saved successfully");
+      setAlertModal({
+        open: true,
+        title: "Success",
+        message: "Changes saved successfully",
+        severity: "success",
+      });
     } catch (err) {
-      console.error(err);
-      alert("Error saving changes");
+      setAlertModal({
+        open: true,
+        title: "Error",
+        message: err.message.includes("BillingCycleDoesNotExistError")
+          ? "No billing cycle has been created yet"
+          : "Error saving changes",
+        severity: "error",
+      });
+    } finally {
+      setIsSaving(false);
     }
-  }
+  };
 
   /**
-   * BUSINESS: Trigger monthly cut by calling POST /close_billing_cycle
-   * We pass { year, month, user, personnel_number, ... }
+   * Handles generating monthly cut/closing billing cycle
+   * Makes API call to close cycle and navigates to monthly cut view on success
    */
-  async function handleGenerateCut() {
+  const handleGenerateCut = async () => {
+    if (isGeneratingCut) return;
+
     try {
-      const userName = user?.username || "system_user";
+      setIsGeneratingCut(true);
       await closeBillingCycle({
-        year,
-        month,
-        user: userName,
+        year: selectedDate.year,
+        month: selectedDate.month,
+        user: user?.username || "system_user",
         personnel_number: "0",
         customer_price_group: "",
         language: "EN",
       });
-      alert("Billing cycle closed successfully");
 
-      // Now navigate to the new page to see the totals:
-      navigate(`/monthly-cut/${year}/${month}`);
+      setAlertModal({
+        open: true,
+        title: "Success",
+        message: "Billing cycle closed successfully",
+        severity: "success",
+        onConfirm: () =>
+          navigate(`/monthly-cut/${selectedDate.year}/${selectedDate.month}`),
+      });
     } catch (err) {
-      console.error(err);
-      alert("Error closing billing cycle");
+      setAlertModal({
+        open: true,
+        title: "Error",
+        message: err.message.includes("ClosedBillingCycleError")
+          ? "This billing cycle has already been closed"
+          : "Error closing billing cycle",
+        severity: "error",
+      });
+    } finally {
+      setIsGeneratingCut(false);
     }
-  }
+  };
 
-  // Pagination calculation
-  const startIndex = (page - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-  const paginated = filteredInvoices.slice(startIndex, endIndex);
-  const pageCount = Math.ceil(filteredInvoices.length / rowsPerPage);
+  // Memoized invoice row renderer
+  const renderInvoiceRow = useCallback(
+    (inv) => (
+      <TableRow key={inv.id}>
+        <StyledTableCell className="cell-id text-center">
+          {inv.id}
+        </StyledTableCell>
+        <StyledTableCell className="cell-doc text-center">
+          {inv.documento_facturacion || inv.billing_document || "N/A"}
+        </StyledTableCell>
+        <StyledTableCell className="cell-actions text-center">
+          {/* actions */}
+        </StyledTableCell>
+        <StyledTableCell className="cell-amount text-center">
+          ${(inv.importe_total || 0).toFixed(2)}
+        </StyledTableCell>
+        <StyledTableCell className="cell-commission text-center">
+          ${(inv.comision_total || inv.importe_comision || 0).toFixed(2)}
+        </StyledTableCell>
+        <StyledTableCell className="cell-status text-center">
+          <StatusSelect
+            value={inv.status || inv.estatus}
+            onChange={(e) => handleStatusChange(inv.id, e.target.value)}
+            t={t}
+          />
+        </StyledTableCell>
+      </TableRow>
+    ),
+    [handleStatusChange, t]
+  );
 
   return (
     <Layout>
-      <Typography variant="h5" mb={2} sx={{ fontWeight: "bold" }}>
-        {t("commissionsTitle")}
-      </Typography>
+      <PageTitle variant="h5">{t("commissionsTitle")}</PageTitle>
 
-      {/* Example controls to pick year/month or filter by seller, etc. */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Box display="flex" gap={2} flexWrap="wrap">
-          {/* Year Input */}
-          <TextField
-            label="Year"
-            type="number"
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            sx={{ width: 120 }}
-          />
-          {/* Month Input */}
-          <TextField
-            label="Month"
-            type="number"
-            value={month}
-            onChange={(e) => setMonth(Number(e.target.value))}
-            sx={{ width: 120 }}
-          />
-          {/* Seller Filter */}
-          <TextField
-            label={t("sellerFilter")}
-            value={sellerFilter}
-            onChange={(e) => setSellerFilter(e.target.value)}
-            sx={{ minWidth: 140 }}
-          />
-          {/* Status Filter */}
-          <FormControl sx={{ minWidth: 140 }}>
-            <InputLabel>{t("statusFilter")}</InputLabel>
-            <Select
-              value={statusFilter}
-              label={t("statusFilter")}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <MenuItem value="">{/* "All" */}</MenuItem>
-              <MenuItem value="pagable">pagable</MenuItem>
-              <MenuItem value="no pagable">no pagable</MenuItem>
-              <MenuItem value="pendiente">pendiente</MenuItem>
-            </Select>
-          </FormControl>
-        </Box>
-      </Paper>
+      <CommissionsFilters
+        year={selectedDate.year}
+        month={selectedDate.month}
+        filters={filters}
+        onFilterChange={updateFilter}
+        onDateChange={handleDateChange}
+        t={t}
+      />
 
-      {/* Table of Invoices */}
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead sx={{ backgroundColor: "#E0E0E0" }}>
-            <TableRow>
-              <TableCell>{t("invoiceId")} (DB)</TableCell>
-              <TableCell>Billing Document</TableCell>
-              <TableCell>{t("currentStatus")}</TableCell>
-              <TableCell>Articles</TableCell>
-              <TableCell>Total Amount</TableCell>
-              <TableCell>Actions (Dropdown)</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {paginated.map((inv) => (
-              <TableRow key={inv.id}>
-                {/* DB ID */}
-                <TableCell>{inv.id}</TableCell>
-                {/* Billing Document */}
-                <TableCell>{inv.billing_document}</TableCell>
-                {/* Estatus */}
-                <TableCell>{inv.estatus}</TableCell>
-                {/* Articles (articulos) */}
-                <TableCell>
-                  {inv.articulos && inv.articulos.length > 0 ? (
-                    inv.articulos.map((art, idx) => (
-                      <Box
-                        key={idx}
-                        sx={{ mb: 1, borderBottom: "1px solid #ccc", pb: 1 }}
-                      >
-                        <Box>
-                          <strong>Material:</strong> {art.material}
-                        </Box>
-                        <Box>
-                          <strong>Description:</strong> {art.descripcion}
-                        </Box>
-                        {/* If your backend stores commission %/amount inside each article, show them here */}
-                        <Box>
-                          <strong>Commission %:</strong>{" "}
-                          {art.porcentajeComision ?? "N/A"}
-                        </Box>
-                        <Box>
-                          <strong>Commission Amount:</strong>{" "}
-                          {art.cantidadComision ?? "N/A"}
-                        </Box>
-                      </Box>
-                    ))
-                  ) : (
-                    <Box sx={{ color: "#999" }}>No articles</Box>
-                  )}
-                </TableCell>
-                {/* Importe Total (if present) */}
-                <TableCell>{inv.importe_total ?? "N/A"}</TableCell>
-                {/* Dropdown to change estatus */}
-                <TableCell>
-                  <FormControl size="small" sx={{ minWidth: 120 }}>
-                    <InputLabel>Status</InputLabel>
-                    <Select
-                      label="Status"
-                      value={inv.estatus}
-                      onChange={(e) =>
-                        handleStatusChange(inv.id, e.target.value)
-                      }
-                    >
-                      <MenuItem value="pagable">pagable</MenuItem>
-                      <MenuItem value="no pagable">no pagable</MenuItem>
-                      <MenuItem value="pendiente">pendiente</MenuItem>
-                    </Select>
-                  </FormControl>
-                </TableCell>
-              </TableRow>
+      {fetchError && (
+        <StyledAlert severity="error">
+          {fetchError.message || "Error retrieving commission data"}
+        </StyledAlert>
+      )}
+
+      {isLoading && (
+        <StyledAlert severity="info">Loading commission data...</StyledAlert>
+      )}
+
+      <ContentWrapper>
+        {!isLoading && !fetchError && (!invoices || invoices.length === 0) && (
+          <StyledAlert severity="info">
+            No commission data found for {selectedDate.month}/
+            {selectedDate.year}
+          </StyledAlert>
+        )}
+
+        {invoices && invoices.length > 0 && (
+          <>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <StyledTableCell className="header text-center cell-id">
+                      {t("invoiceId")} (DB)
+                    </StyledTableCell>
+                    <StyledTableCell className="header text-center cell-doc">
+                      {t("billingDocument")}
+                    </StyledTableCell>
+                    <StyledTableCell className="header text-center cell-actions">
+                      {t("actions")}
+                    </StyledTableCell>
+                    <StyledTableCell className="header text-center cell-amount">
+                      {t("totalAmount")}
+                    </StyledTableCell>
+                    <StyledTableCell className="header text-center cell-commission">
+                      {t("totalCommission")}
+                    </StyledTableCell>
+                    <StyledTableCell className="header cell-status text-center">
+                      {t("currentStatus")}
+                    </StyledTableCell>
+                  </TableRow>
+                </TableHead>
+              </Table>
+            </TableContainer>
+
+            {displayedInvoices.map((inv) => (
+              <StyledAccordion
+                key={inv.id}
+                expanded={expandedRow === inv.id}
+                onChange={() =>
+                  setExpandedRow(expandedRow === inv.id ? null : inv.id)
+                }
+              >
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <TableContainer>
+                    <Table size="small">
+                      <TableBody>{renderInvoiceRow(inv)}</TableBody>
+                    </Table>
+                  </TableContainer>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <ArticleDetails articles={inv.articulos} t={t} />
+                </AccordionDetails>
+              </StyledAccordion>
             ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </>
+        )}
+      </ContentWrapper>
 
-      {/* Save and Generate Cut Buttons */}
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        mt={2}
-      >
-        <Button
-          variant="contained"
-          onClick={handleSaveChanges}
-          sx={{ backgroundColor: "#F15A2B", fontWeight: "bold" }}
-        >
-          {t("saveChanges")}
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleGenerateCut}
-          sx={{ backgroundColor: "#F15A2B", fontWeight: "bold" }}
-        >
-          {t("generateMonthlyCut")}
-        </Button>
-      </Stack>
+      <BottomActionsContainer>
+        <PaginationWrapper>
+          <Pagination
+            count={pageCount}
+            page={page}
+            onChange={(e, val) => setPage(val)}
+            color="primary"
+            size="small"
+          />
+        </PaginationWrapper>
 
-      {/* Pagination */}
-      <Stack alignItems="center" mt={2}>
-        <Pagination
-          count={pageCount}
-          page={page}
-          onChange={(e, val) => setPage(val)}
-          color="primary"
-        />
-      </Stack>
+        <ActionButtonsWrapper>
+          <Button
+            variant="contained"
+            onClick={handleSaveChanges}
+            disabled={isSaving || isGeneratingCut}
+            sx={buttonStyles}
+          >
+            {t("saveChanges")}
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleGenerateCut}
+            disabled={isSaving || isGeneratingCut}
+            sx={buttonStyles}
+          >
+            {t("generateMonthlyCut")}
+          </Button>
+        </ActionButtonsWrapper>
+      </BottomActionsContainer>
+
+      <AlertModal
+        open={alertModal.open}
+        onClose={() => setAlertModal({ open: false })}
+        title={alertModal.title}
+        message={alertModal.message}
+        severity={alertModal.severity}
+        onConfirm={alertModal.onConfirm}
+      />
     </Layout>
   );
 }
