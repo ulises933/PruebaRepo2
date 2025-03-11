@@ -49,6 +49,7 @@ export const strings = {
     payable: "Payable",
     notPayable: "Not Payable",
     pendingPayable: "Pending",
+<<<<<<< HEAD
     selectPeriod: "Select Period",
     clearFilter: "Clear Filter",
     searchSeller: "Search Seller",
@@ -58,6 +59,23 @@ export const strings = {
     errorLoadingCommissions: "Error loading commissions",
     loadingCommissions: "Loading commissions...",
     noCommissionsFound: "No commissions found for {{month}}/{{year}}",
+=======
+    //Comission Config
+    agent: "Agent",
+    by_agent: "By Agent",
+    by_item: "By Item",
+    personnel_number: "Personnel Number",
+    commission_percent: "Commission Percent",
+    penalty: "Penalty",
+    save_changes: "Save Changes",
+    commissions_config: "Commissions Configuration",
+    config_type: "Configuration Type",
+    add_agent: "Add Agent",
+    add_item: "Add Item",
+    select_agent: "Select Agent",
+    sku: "SKU",
+    item_name: "Item Name",
+>>>>>>> 52f57ced60709aed085678bb83eade245b249620
   },
   es: {
     // Common
@@ -105,6 +123,7 @@ export const strings = {
     payable: "Pagable",
     notPayable: "No Pagable",
     pendingPayable: "Pendiente",
+<<<<<<< HEAD
     selectPeriod: "Seleccionar Período",
     clearFilter: "Limpiar Filtro",
     searchSeller: "Buscar Vendedor",
@@ -114,5 +133,22 @@ export const strings = {
     errorLoadingCommissions: "Error al cargar las comisiones",
     loadingCommissions: "Cargando comisiones...",
     noCommissionsFound: "No se encontraron comisiones para {{month}}/{{year}}",
+=======
+    //Comission Config
+    agent: "Agente",
+    by_agent: "Por Agente",
+    by_item: "Por Artículo",
+    personnel_number: "Número de Personal",
+    commission_percent: "Porcentaje de Comisión",
+    penalty: "Castigo",
+    save_changes: "Guardar Cambios",
+    commissions_config: "Configuración de Comisiones",
+    config_type: "Tipo de Configuración",
+    add_agent: "Agregar Agente",
+    add_item: "Agregar Artículo",
+    select_agent: "Seleccionar Agente",
+    sku: "SKU",
+    item_name: "Nombre del Artículo",
+>>>>>>> 52f57ced60709aed085678bb83eade245b249620
   },
 };

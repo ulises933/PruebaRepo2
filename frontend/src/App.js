@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import { AuthProviderSSO } from "./context/AuthContextSSO";
 import CommissionsSummary from "./pages/CommissionsSummary";
 import PaymentsControl from "./pages/PaymentsControl";
+import CommissionsConfig from "./pages/CommissionsConfig";
 import PrivateRoute from "./components/PrivateRoute";
 import MonthlyCutSummary from "./pages/MonthlyCutSummary"; // NEW
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -37,6 +38,7 @@ const theme = createTheme({
 
 function App({ msalInstance }) {
   return (
+<<<<<<< HEAD
     <ThemeProvider theme={theme}>
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <MsalProvider instance={msalInstance}>
@@ -73,6 +75,38 @@ function App({ msalInstance }) {
         </MsalProvider>
       </LocalizationProvider>
     </ThemeProvider>
+=======
+    <MsalProvider instance={msalInstance}>
+      <LanguageProvider>
+        <AuthProviderSSO>
+          <AuthProvider>
+            <BrowserRouter>
+              <Routes>
+                {/* Public Route: Login */}
+                <Route path="/" element={<Login />} />
+                
+                  <Route
+                    path="/commissions-config"
+                    element={<CommissionsConfig />}
+                  />
+                {/* Protected Routes */}
+                <Route element={<PrivateRoute />}>
+                <Route
+                    path="/commissions-summary"
+                    element={<CommissionsSummary />}
+                  />
+                  <Route
+                    path="/payments-control"
+                    element={<PaymentsControl />}
+                  />
+                </Route>
+              </Routes>
+            </BrowserRouter>
+          </AuthProvider>
+        </AuthProviderSSO>
+      </LanguageProvider>
+    </MsalProvider>
+>>>>>>> 52f57ced60709aed085678bb83eade245b249620
   );
 }
 
