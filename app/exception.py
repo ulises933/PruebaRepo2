@@ -15,13 +15,16 @@ logging_level_selector = {
     'FATAL': logging.fatal
 }
 
+class PartnerConfigurationDoesNotExistError(Exception):
+    def __init__(self,personnel_number:str):
+        super().__init__(f"There is no partner configuration for partner with personnel_number = {personnel_number}")
 class BillingDocumentOutOfBillingCycleError(Exception):
     def __init__(self, id:int):
         super().__init__(f"The billing document with id={id} is out of the current billing cycle")
 
 class BillingDocumentDoesNotExistError(Exception):
     def __init__(self,id:int):
-        super().__init__(f"No existe una factura con id={id}")
+        super().__init__(f"There is no billing document with id = {id}")
 
 class BillingCycleDoesNotExistError(Exception):
     def __init__(self,message:str):
