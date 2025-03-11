@@ -47,7 +47,7 @@ function Layout({ children }) {
     logout();
     navigate("/");
   }
-  async function handleLogoutSSO() {
+  function handleLogoutSSO() {
     logoutSSO();
   }
 
