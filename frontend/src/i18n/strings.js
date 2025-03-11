@@ -39,6 +39,7 @@ export const strings = {
     materialCode: "Material Code",
     amount: "Amount",
     commission: "Commission",
+    noArticles: "No articles found",
     // Payments Control
     paymentsTitle: "Payments Control",
     paymentDate: "Payment Date (YYYY-MM-DD)",
@@ -46,13 +47,17 @@ export const strings = {
     paymentId: "Invoice ID (SAP)",
     // Dropdown pay statuses
     payable: "Payable",
-    notPayable: "Not Payable", // Fixed capitalization
+    notPayable: "Not Payable",
     pendingPayable: "Pending",
     selectPeriod: "Select Period",
-    clearFilter: "Clear Filter", // Fixed capitalization
-    searchSeller: "Search Seller", // Fixed capitalization
-    status: "Status", // Added missing status label used in StatusSelect
-    filters: "Filters", // Added new translation
+    clearFilter: "Clear Filter",
+    searchSeller: "Search Seller",
+    status: "Status",
+    filters: "Filters",
+    // Loading and error states
+    errorLoadingCommissions: "Error loading commissions",
+    loadingCommissions: "Loading commissions...",
+    noCommissionsFound: "No commissions found for {{month}}/{{year}}",
   },
   es: {
     // Common
@@ -90,6 +95,7 @@ export const strings = {
     materialCode: "Código de Material",
     amount: "Importe",
     commission: "Comisión",
+    noArticles: "No se encontraron artículos",
     // Payments Control
     paymentsTitle: "Control de Pagos",
     paymentDate: "Fecha de Pago (AAAA-MM-DD)",
@@ -100,9 +106,13 @@ export const strings = {
     notPayable: "No Pagable",
     pendingPayable: "Pendiente",
     selectPeriod: "Seleccionar Período",
-    clearFilter: "Limpiar Filtro", // Fixed capitalization
-    searchSeller: "Buscar Vendedor", // Fixed capitalization
-    status: "Estado", // Added missing status label used in StatusSelect
-    filters: "Filtros", // Added new translation
+    clearFilter: "Limpiar Filtro",
+    searchSeller: "Buscar Vendedor",
+    status: "Estado",
+    filters: "Filtros",
+    // Loading and error states
+    errorLoadingCommissions: "Error al cargar las comisiones",
+    loadingCommissions: "Cargando comisiones...",
+    noCommissionsFound: "No se encontraron comisiones para {{month}}/{{year}}",
   },
 };

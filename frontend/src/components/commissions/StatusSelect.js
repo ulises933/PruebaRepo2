@@ -13,29 +13,40 @@ import { StyledFormControl } from "./styles/CommissionsStyles";
  * @param {Function} props.t - Translation function for i18n
  * @returns {React.ReactElement} A styled select dropdown for commission status
  */
-export const StatusSelect = ({ value, onChange, t }) => (
-  <StyledFormControl size="small">
-    <Select
-      value={value}
-      onChange={onChange}
-      MenuProps={{
-        PaperProps: {
-          sx: {
-            "& .MuiMenuItem-root": {
-              fontSize: "0.65rem", // Match font size with other components
-              minHeight: "24px", // Compact menu items
-              padding: "4px 8px", // Consistent padding
+export const StatusSelect = ({ value, onChange, t }) => {
+  // Normalize the value to match available options
+  const normalizedValue = value?.toLowerCase?.() || "";
+
+  return (
+    <StyledFormControl size="small">
+      <Select
+        value={normalizedValue}
+        onChange={(e) => {
+          // Ensure consistent case when changing status
+          onChange({
+            ...e,
+            target: { ...e.target, value: e.target.value.toLowerCase() },
+          });
+        }}
+        MenuProps={{
+          PaperProps: {
+            sx: {
+              "& .MuiMenuItem-root": {
+                fontSize: "0.65rem",
+                minHeight: "24px",
+                padding: "4px 8px",
+              },
             },
           },
-        },
-      }}
-    >
-      <MenuItem value="pagable">{t("payable")}</MenuItem>
-      <MenuItem value="no pagable">{t("notPayable")}</MenuItem>
-      <MenuItem value="pendiente">{t("pending")}</MenuItem>
-    </Select>
-  </StyledFormControl>
-);
+        }}
+      >
+        <MenuItem value="payable">{t("payable")}</MenuItem>
+        <MenuItem value="not payable">{t("notPayable")}</MenuItem>
+        <MenuItem value="pending">{t("pending")}</MenuItem>
+      </Select>
+    </StyledFormControl>
+  );
+};
 
 // Default export for convenient importing
 export default StatusSelect;

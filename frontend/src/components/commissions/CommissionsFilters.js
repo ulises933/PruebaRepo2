@@ -39,7 +39,7 @@ import {
  * @param {Function} onDateChange - Callback when date selection changes
  * @param {Function} t - Translation function
  */
-const CommissionsFilters = ({
+export const CommissionsFilters = ({
   year,
   month,
   filters,
@@ -102,6 +102,36 @@ const CommissionsFilters = ({
                         "& .MuiInputBase-input": {
                           fontSize: "0.65rem",
                           padding: "4px 8px",
+                        },
+                      },
+                    },
+                    layout: {
+                      sx: {
+                        "& .MuiPickersLayout-root": {
+                          width: "260px",
+                          height: "230px",
+                        },
+                        "& .MuiPickersLayout-contentWrapper": {
+                          width: "260px",
+                          height: "230px",
+                        },
+                        "& .MuiYearCalendar-root": {
+                          width: "260px",
+                          height: "140px",
+                          "& .MuiPickersYear-yearButton": {
+                            padding: "4px 8px",
+                            margin: "2px",
+                            fontSize: "0.65rem",
+                          },
+                        },
+                        "& .MuiMonthCalendar-root": {
+                          width: "260px",
+                          height: "140px",
+                          "& .MuiPickersMonth-monthButton": {
+                            padding: "4px 8px",
+                            margin: "2px",
+                            fontSize: "0.65rem",
+                          },
                         },
                       },
                     },

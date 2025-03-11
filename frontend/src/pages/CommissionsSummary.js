@@ -109,7 +109,9 @@ function CommissionsSummary() {
   // Handler for status changes in individual invoices
   const handleStatusChange = useCallback((id, newStatus) => {
     setInvoices((prev) =>
-      prev.map((inv) => (inv.id === id ? { ...inv, estatus: newStatus } : inv))
+      prev.map((inv) =>
+        inv.id === id ? { ...inv, estatus: newStatus.toLowerCase() } : inv
+      )
     );
   }, []);
 
@@ -204,14 +206,14 @@ function CommissionsSummary() {
           {/* actions */}
         </StyledTableCell>
         <StyledTableCell className="cell-amount text-center">
-          ${(inv.importe_total || 0).toFixed(2)}
+          ${(inv.total_amount || 0).toFixed(2)}
         </StyledTableCell>
         <StyledTableCell className="cell-commission text-center">
-          ${(inv.comision_total || inv.importe_comision || 0).toFixed(2)}
+          ${(inv.commission_amount || 0).toFixed(2)}
         </StyledTableCell>
         <StyledTableCell className="cell-status text-center">
           <StatusSelect
-            value={inv.status || inv.estatus}
+            value={inv.estatus || inv.status}
             onChange={(e) => handleStatusChange(inv.id, e.target.value)}
             t={t}
           />
@@ -236,19 +238,21 @@ function CommissionsSummary() {
 
       {fetchError && (
         <StyledAlert severity="error">
-          {fetchError.message || "Error retrieving commission data"}
+          {t("errorLoadingCommissions")}
         </StyledAlert>
       )}
 
       {isLoading && (
-        <StyledAlert severity="info">Loading commission data...</StyledAlert>
+        <StyledAlert severity="info">{t("loadingCommissions")}</StyledAlert>
       )}
 
       <ContentWrapper>
         {!isLoading && !fetchError && (!invoices || invoices.length === 0) && (
           <StyledAlert severity="info">
-            No commission data found for {selectedDate.month}/
-            {selectedDate.year}
+            {t("noCommissionsFound", {
+              month: selectedDate.month,
+              year: selectedDate.year,
+            })}
           </StyledAlert>
         )}
 
@@ -297,7 +301,7 @@ function CommissionsSummary() {
                   </TableContainer>
                 </AccordionSummary>
                 <AccordionDetails>
-                  <ArticleDetails articles={inv.articulos} t={t} />
+                  <ArticleDetails articles={inv.items} t={t} />
                 </AccordionDetails>
               </StyledAccordion>
             ))}
