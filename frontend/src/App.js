@@ -38,7 +38,6 @@ const theme = createTheme({
 
 function App({ msalInstance }) {
   return (
-<<<<<<< HEAD
     <ThemeProvider theme={theme}>
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <MsalProvider instance={msalInstance}>
@@ -52,6 +51,10 @@ function App({ msalInstance }) {
 
                     {/* Protected routes */}
                     <Route element={<PrivateRoute />}>
+                      <Route
+                        path="/commissions-config"
+                        element={<CommissionsConfig />}
+                      />
                       <Route
                         path="/commissions-summary"
                         element={<CommissionsSummary />}
@@ -75,38 +78,6 @@ function App({ msalInstance }) {
         </MsalProvider>
       </LocalizationProvider>
     </ThemeProvider>
-=======
-    <MsalProvider instance={msalInstance}>
-      <LanguageProvider>
-        <AuthProviderSSO>
-          <AuthProvider>
-            <BrowserRouter>
-              <Routes>
-                {/* Public Route: Login */}
-                <Route path="/" element={<Login />} />
-                
-                  <Route
-                    path="/commissions-config"
-                    element={<CommissionsConfig />}
-                  />
-                {/* Protected Routes */}
-                <Route element={<PrivateRoute />}>
-                <Route
-                    path="/commissions-summary"
-                    element={<CommissionsSummary />}
-                  />
-                  <Route
-                    path="/payments-control"
-                    element={<PaymentsControl />}
-                  />
-                </Route>
-              </Routes>
-            </BrowserRouter>
-          </AuthProvider>
-        </AuthProviderSSO>
-      </LanguageProvider>
-    </MsalProvider>
->>>>>>> 52f57ced60709aed085678bb83eade245b249620
   );
 }
 
