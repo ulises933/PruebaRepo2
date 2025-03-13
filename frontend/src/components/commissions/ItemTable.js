@@ -8,6 +8,7 @@ import {
 import TableHeader from "./table/TableHeader";
 import EditableCell from "./table/EditableCell";
 import EmptyTableMessage from "./table/EmptyTableMessage";
+import DeleteButton from "./table/DeleteButton";
 
 const itemColumns = [
   {
@@ -25,11 +26,17 @@ const itemColumns = [
     label: "commission_percent",
     widths: { xs: "30%", sm: "30%", md: "30%" },
   },
+  {
+    id: "actions",
+    label: "actions",
+    widths: { xs: "10%", sm: "10%", md: "10%" },
+  },
 ];
 
 const ItemTable = ({
   items,
   onItemChange,
+  onDeleteItem,
   t,
   editingItem,
   onStartEdit,
@@ -56,10 +63,11 @@ const ItemTable = ({
                     onBlur={() => onFinishEdit("item")}
                     suffix="%"
                   />
+                  <DeleteButton onClick={() => onDeleteItem(item.sku)} t={t} />
                 </TableRow>
               ))
             ) : (
-              <EmptyTableMessage colSpan={3} message={t("no_items_found")} />
+              <EmptyTableMessage colSpan={4} message={t("no_items_found")} />
             )}
           </TableBody>
         </Table>

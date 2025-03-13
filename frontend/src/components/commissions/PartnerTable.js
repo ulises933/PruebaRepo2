@@ -8,6 +8,7 @@ import {
 import TableHeader from "./table/TableHeader";
 import EditableCell from "./table/EditableCell";
 import EmptyTableMessage from "./table/EmptyTableMessage";
+import DeleteButton from "./table/DeleteButton";
 
 const partnerColumns = [
   {
@@ -30,11 +31,17 @@ const partnerColumns = [
     label: "penalty",
     widths: { xs: "20%", sm: "25%", md: "25%" },
   },
+  {
+    id: "actions",
+    label: "actions",
+    widths: { xs: "10%", sm: "10%", md: "10%" },
+  },
 ];
 
 const PartnerTable = ({
   partners,
   onPartnerChange,
+  onDeletePartner,
   t,
   formatter,
   editingPartner,
@@ -75,10 +82,14 @@ const PartnerTable = ({
                     onBlur={() => onFinishEdit("partner")}
                     suffix="MXN"
                   />
+                  <DeleteButton
+                    onClick={() => onDeletePartner(partner.personnel_number)}
+                    t={t}
+                  />
                 </TableRow>
               ))
             ) : (
-              <EmptyTableMessage colSpan={4} message={t("no_partners_found")} />
+              <EmptyTableMessage colSpan={5} message={t("no_partners_found")} />
             )}
           </TableBody>
         </Table>

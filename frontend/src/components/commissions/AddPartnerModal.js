@@ -2,9 +2,8 @@ import React from "react";
 import {
   DialogTitle,
   DialogActions,
-  Select,
-  MenuItem,
-  InputLabel,
+  Autocomplete,
+  TextField,
 } from "@mui/material";
 import {
   StyledDialog,
@@ -29,38 +28,69 @@ const AddPartnerModal = ({
       (partner) => !addedIds.includes(partner.personnel_number)
     ) || [];
 
+  const handleChange = (event, newValue) => {
+    onSelectChange({
+      target: { value: newValue?.personnel_number || "" },
+    });
+  };
+
   return (
     <StyledDialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontSize: "0.85rem" }}>{t("add_partner")}</DialogTitle>
       <StyledDialogContent>
         <StyledFormControl fullWidth>
-          <Select
-            value={selectedId}
-            onChange={onSelectChange}
-            size="small"
-            displayEmpty
-            sx={{
-              fontSize: "0.65rem",
-              "& .MuiSelect-select": {
-                padding: "6px 8px",
+          <Autocomplete
+            value={
+              availablePartners.find(
+                (p) => p.personnel_number === selectedId
+              ) || null
+            }
+            onChange={handleChange}
+            options={availablePartners}
+            getOptionLabel={(option) =>
+              `${option.full_name} (${option.personnel_number})`
+            }
+            noOptionsText={t("no_partners_to_add")}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                size="small"
+                placeholder={t("select_partner")}
+                sx={{
+                  "& .MuiInputBase-root": {
+                    fontSize: "0.75rem",
+                    padding: "2px 4px",
+                  },
+                  "& .MuiAutocomplete-input": {
+                    padding: "4px 6px !important",
+                  },
+                }}
+              />
+            )}
+            ListboxProps={{
+              style: {
+                fontSize: "0.75rem",
+                maxHeight: "250px",
               },
             }}
-          >
-            <MenuItem value="" disabled sx={{ fontSize: "0.65rem" }}>
-              {availablePartners.length > 0
-                ? t("select_partner")
-                : t("no_partners_to_add")}
-            </MenuItem>
-            {availablePartners.map((partner) => (
-              <MenuItem
-                key={partner.personnel_number}
-                value={partner.personnel_number}
-                sx={{ fontSize: "0.65rem", minHeight: "32px" }}
+            renderOption={(props, option) => (
+              <li
+                {...props}
+                style={{ fontSize: "0.75rem", padding: "4px 8px" }}
               >
-                {partner.full_name}
-              </MenuItem>
-            ))}
-          </Select>
+                {option.full_name}
+                <span
+                  style={{
+                    color: "gray",
+                    marginLeft: "8px",
+                    fontSize: "0.7rem",
+                  }}
+                >
+                  ({option.personnel_number})
+                </span>
+              </li>
+            )}
+          />
         </StyledFormControl>
       </StyledDialogContent>
       <DialogActions sx={{ padding: "8px 16px" }}>

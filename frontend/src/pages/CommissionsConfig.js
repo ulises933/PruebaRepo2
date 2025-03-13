@@ -56,90 +56,16 @@ import PartnerTable from "../components/commissions/PartnerTable";
 import ItemTable from "../components/commissions/ItemTable";
 import AddPartnerModal from "../components/commissions/AddPartnerModal";
 import SearchIcon from "@mui/icons-material/Search";
-
-const allPartners = [
-  {
-    full_name: "Zacarías Flores del Campo",
-    personnel_number: 9,
-    commission: 5.5,
-    penalty: 1000,
-  },
-  {
-    full_name: "McLovin",
-    personnel_number: 5,
-    commission: 3.2,
-    penalty: 500,
-  },
-  {
-    full_name: "Vicente Rorifico",
-    personnel_number: 4,
-    commission: 4.0,
-    penalty: 750,
-  },
-  {
-    full_name: "Elena Nito",
-    personnel_number: 2,
-    commission: 6.0,
-    penalty: 1200,
-  },
-  {
-    full_name: "Armando Paredes",
-    personnel_number: 7,
-    commission: 4.5,
-    penalty: 800,
-  },
-  {
-    full_name: "Dolores Delano",
-    personnel_number: 3,
-    commission: 5.0,
-    penalty: 900,
-  },
-  {
-    full_name: "Alan Brito",
-    personnel_number: 8,
-    commission: 3.8,
-    penalty: 600,
-  },
-  {
-    full_name: "Elsa Pato",
-    personnel_number: 1,
-    commission: 4.2,
-    penalty: 850,
-  },
-  {
-    full_name: "Mario Neta",
-    personnel_number: 6,
-    commission: 5.8,
-    penalty: 1100,
-  },
-  {
-    full_name: "Aquiles Bailo",
-    personnel_number: 10,
-    commission: 3.5,
-    penalty: 450,
-  },
-];
-
-const testItems = [
-  { sku: "SKU001", name: "Laptop Dell XPS 13", commission: 2.5 },
-  { sku: "SKU002", name: "Monitor LG 27'", commission: 1.8 },
-  { sku: "SKU003", name: "Teclado Mecánico RGB", commission: 3.0 },
-  { sku: "SKU004", name: "Mouse Gaming Logitech", commission: 2.0 },
-  { sku: "SKU005", name: "Audífonos Sony WH-1000XM4", commission: 2.2 },
-  { sku: "SKU006", name: "iPad Pro 12.9", commission: 1.5 },
-  { sku: "SKU007", name: "Samsung Galaxy S21", commission: 2.8 },
-  { sku: "SKU008", name: "Impresora HP LaserJet", commission: 1.2 },
-  { sku: "SKU009", name: "Webcam Logitech C920", commission: 2.4 },
-  { sku: "SKU010", name: "Router ASUS Gaming", commission: 1.9 },
-];
+import AddItemModal from "../components/commissions/AddItemModal";
+import Notification from "../components/common/Notification";
 
 /**
  * CommissionsConfig allows configuring commission amounts for partners or items.
  */
 function CommissionsConfig() {
   const [filter, setFilter] = useState("Partner");
-  const [partners, setPartners] = useState(allPartners);
-  const [items, setItems] = useState(testItems);
+  const [partners, setPartners] = useState([]);
+  const [items, setItems] = useState([]);
   const [allAvailablePartners, setAllAvailablePartners] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -163,6 +89,20 @@ function CommissionsConfig() {
 
   const [editingPartner, setEditingPartner] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
+
+  // Add new state for item modal and form data
+  const [openItemModal, setOpenItemModal] = useState(false);
+  const [newItemData, setNewItemData] = useState({
+    sku: "",
+    name: "",
+    commission: "0.00",
+  });
+
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   // Filter items based on search term
   const filteredItems = useMemo(() => {
@@ -198,7 +138,7 @@ function CommissionsConfig() {
         // Fetch both partners and configurations
         const [partnersData, configsData] = await Promise.all([
           commissionConfigService.getPartners(),
-          commissionConfigService.getPartnerConfigs("DEFAULT"), // Add customer price group parameter
+          commissionConfigService.getPartnerConfigs("08"),
         ]);
 
         // Store all available partners from API
@@ -225,7 +165,7 @@ function CommissionsConfig() {
 
         setPartners(partnersWithConfig);
       } catch (err) {
-        setError(err.message);
+        showNotification(err.message || t("error"), "error");
         setAllAvailablePartners([]);
         setPartners([]);
       } finally {
@@ -233,8 +173,23 @@ function CommissionsConfig() {
       }
     };
 
-    //fetchData();
-  }, []);
+    fetchData();
+  }, [t]);
+
+  const showNotification = (message, severity = "success") => {
+    setNotification({
+      open: true,
+      message,
+      severity,
+    });
+  };
+
+  const handleCloseNotification = () => {
+    setNotification((prev) => ({
+      ...prev,
+      open: false,
+    }));
+  };
 
   const handleSaveChanges = async () => {
     try {
@@ -251,9 +206,9 @@ function CommissionsConfig() {
         configurations,
         user?.username
       );
-      alert(t("changes_saved_successfully"));
+      showNotification(t("changes_saved_successfully"), "success");
     } catch (err) {
-      setError(err.message);
+      showNotification(err.message || t("error"), "error");
     } finally {
       setIsLoading(false);
     }
@@ -288,12 +243,20 @@ function CommissionsConfig() {
   };
 
   const handleAddArticle = () => {
-    const newArticle = {
-      sku: `SKU00${items.length + 1}`,
-      name: `Item ${items.length + 1}`,
-      commission: 0,
-    };
-    setItems([...items, newArticle]);
+    setItems([
+      ...items,
+      {
+        sku: newItemData.sku,
+        name: newItemData.name,
+        commission: Number(newItemData.commission || 0).toFixed(2),
+      },
+    ]);
+    setOpenItemModal(false);
+    setNewItemData({
+      sku: "",
+      name: "",
+      commission: "0.00",
+    });
   };
 
   // Update pagination to use filtered partners
@@ -356,6 +319,29 @@ function CommissionsConfig() {
       newItems[itemIndex].commission = value;
       setItems(newItems);
     }
+  };
+
+  // Add handlers for item modal
+  const handleOpenItemModal = () => {
+    setOpenItemModal(true);
+  };
+
+  const handleCloseItemModal = () => {
+    setOpenItemModal(false);
+    setNewItemData({
+      sku: "",
+      name: "",
+      commission: "0.00",
+    });
+  };
+
+  // Add delete handlers
+  const handleDeletePartner = (personnelNumber) => {
+    setPartners(partners.filter((p) => p.personnel_number !== personnelNumber));
+  };
+
+  const handleDeleteItem = (sku) => {
+    setItems(items.filter((item) => item.sku !== sku));
   };
 
   return (
@@ -428,7 +414,9 @@ function CommissionsConfig() {
 
           <ActionButton
             variant="outlined"
-            onClick={filter === "Partner" ? handleOpenModal : handleAddArticle}
+            onClick={
+              filter === "Partner" ? handleOpenModal : handleOpenItemModal
+            }
           >
             + {filter === "Partner" ? t("add_partner") : t("add_item")}
           </ActionButton>
@@ -445,6 +433,7 @@ function CommissionsConfig() {
                 <PartnerTable
                   partners={displayedPartners}
                   onPartnerChange={handlePartnerChange}
+                  onDeletePartner={handleDeletePartner}
                   page={page}
                   pageCount={partnerPageCount}
                   onPageChange={(e, val) => setPage(val)}
@@ -463,6 +452,7 @@ function CommissionsConfig() {
                 <ItemTable
                   items={displayedItems}
                   onItemChange={handleItemChange}
+                  onDeleteItem={handleDeleteItem}
                   page={itemsPage}
                   pageCount={itemsPageCount}
                   onPageChange={(e, val) => setItemsPage(val)}
@@ -524,6 +514,22 @@ function CommissionsConfig() {
         partners={allAvailablePartners}
         addedIds={addedPersonnelNumbers}
         t={t}
+      />
+
+      <AddItemModal
+        open={openItemModal}
+        onClose={handleCloseItemModal}
+        onAdd={handleAddArticle}
+        itemData={newItemData}
+        onItemDataChange={setNewItemData}
+        t={t}
+      />
+
+      <Notification
+        open={notification.open}
+        message={notification.message}
+        severity={notification.severity}
+        onClose={handleCloseNotification}
       />
     </Layout>
   );
