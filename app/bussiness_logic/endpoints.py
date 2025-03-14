@@ -8,12 +8,16 @@ from app.bussiness_logic.comisiones_service import CommissionsService
 from app.bussiness_logic.corte_mensual_service import MonthlyCutService
 from app.bussiness_logic.db_models import BillingDocumentStatus
 from app.bussiness_logic.dependencies import get_billing_doc_tracking_service, get_monthly_cut_service, \
-    get_comisiones_service, get_partner_catalog_service, get_partner_commission_configuration_service
+    get_comisiones_service, get_partner_catalog_service, get_item_catalog_service,  \
+    get_partner_commission_configuration_service, get_item_commission_configuration_service
 from app.bussiness_logic.dependencies import get_user_info_service
 from app.bussiness_logic.factura_tracking_service import BillingDocumentTrackingService
 from app.bussiness_logic.partner_catalog_service import PartnerCatalogService
 from app.bussiness_logic.partner_commission_configuration_service import PartnerCommissionConfigurationService, \
-    PartnerConfiguration
+    PartnerConfiguration, PartnerConfigurationUpdate
+from app.bussiness_logic.item_catalog_service import ItemCatalogService
+from app.bussiness_logic.item_commission_configuration_service import ItemCommissionConfigurationService, \
+    ItemConfiguration, ItemConfigurationUpdate
 from app.bussiness_logic.user_info_service import UserInfoService
 from app.exception import BillingDocumentOutOfBillingCycleError, BillingCycleDoesNotExistError, \
     BillingDocumentDoesNotExistError, ClosedBillingCycleError
@@ -174,6 +178,18 @@ async def validate_sso_token(
 
 @business_logic_router.get("/partners")
 async def get_partners(request: Request, customer_price_group: Optional[str] = None, partner_catalog_service: PartnerCatalogService = Depends(get_partner_catalog_service)):
+    """
+    Lists all the partners for a specific customer price group.
+
+    Parameters:
+        customer_price_group (Optional[str]): The identifier for the customer price group to filter the partners. If omitted, partners from every customer price group will be returned
+
+    Returns:
+        List[Dict[str,str]]: A list of objects containing the full name and personnel number of each partner in the specified customer price group.
+
+    Usage:
+        This function is used to retrieve partner data from the selected customer price group to be presented as selectable options within a dropdown in the frontend.
+    """
     try:
         partners = await partner_catalog_service.get_partners(customer_price_group)
         response_content = partners
@@ -189,6 +205,25 @@ async def get_partners(request: Request, customer_price_group: Optional[str] = N
 
 @business_logic_router.post("/partner_configuration")
 async def createPartnerConfiguration(request:Request, partner_configuration: PartnerConfiguration, user_mod: str, partner_commission_configuration_service:PartnerCommissionConfigurationService=Depends(get_partner_commission_configuration_service)):
+    """
+    Creates a new commission configuration for a specific partner.
+
+    Parameters:
+        partner_configuration (PartnerConfiguration): An object containing the details for the new partner configuration, including:
+            - personnel_number (str): The SAP identifier for the partner.
+            - full_name (str): The full name of the partner, for displaying purposes.
+            - commission_percent (float): The commission percentage to set.
+            - fixed_fee (str): The fixed fee to set.
+            - customer_price_group (str): The identifier for the customer price group.
+        user_mod (str): The identifier of the user making the creation.
+
+    Returns:
+        PartnerCommissionConfiguration: The newly created partner commission configuration object.
+
+    Usage:
+        This function is used to create a new partner commission configuration based on the selected personnel number and customer price group.
+    """
+    
     try:
         partner_configuration = partner_commission_configuration_service.createConfiguration(partner_configuration, user_mod)
         response_content = partner_configuration.serialize()
@@ -202,14 +237,27 @@ async def createPartnerConfiguration(request:Request, partner_configuration: Par
         status_code = 500
     return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
 
-@business_logic_router.patch("/partner_configuration")
-async def updatePartnerConfiguration(request:Request, partner_configurations: List[PartnerConfiguration], user_mod: str, partner_commission_configuration_service:PartnerCommissionConfigurationService=Depends(get_partner_commission_configuration_service)):
+@business_logic_router.patch("/partner_configurations")
+async def updatePartnerConfigurations(request:Request, partner_configurations: List[PartnerConfigurationUpdate], user_mod: str, partner_commission_configuration_service:PartnerCommissionConfigurationService=Depends(get_partner_commission_configuration_service)):
+    """
+    Updates existing configurations based on the provided configuration IDs. Only editable fields are updated (commission percent & fixed fee).
+
+    Parameters:
+        partner_configuration_updates (List[PartnerConfigurationUpdate]): A list of objects containing the updated values for each configuration, including:
+            - id (int): The ID of the configuration to be updated.
+            - commission_percent (float): The new commission percentage to set.
+            - fixed_fee (float): The new fixed fee to set.
+        user_mod (str): The identifier of the user making the modifications.
+
+    Returns:
+        List[PartnerCommissionConfiguration]: A list of the updated configuration objects after the changes have been applied.
+
+    Usage:
+        This function is used to modify existing partner commission configurations in bulk, allowing for updates to commission rates and fees of multiple records at once.
+    """
     try:
-        updated_configurations = []
-        for partner_configuration in partner_configurations:
-            updated_configuration = partner_commission_configuration_service.updateConfiguration(partner_configuration, user_mod)
-            updated_configurations.append(updated_configuration.serialize())
-        response_content = updated_configurations
+        updated_configurations = partner_commission_configuration_service.bulkUpdateConfigurations(partner_configurations, user_mod)
+        response_content = [updated_configuration.serialize() for updated_configuration in updated_configurations]
         status_code = 200
     except Exception as e:
         logging.exception(e)
@@ -222,6 +270,18 @@ async def updatePartnerConfiguration(request:Request, partner_configurations: Li
 
 @business_logic_router.get("/partner_configurations")
 async def get_partner_configurations(request: Request, customer_price_group: str, partner_commission_configuration_service:PartnerCommissionConfigurationService=Depends(get_partner_commission_configuration_service)):
+    """
+    Returns a list of partner configurations for a specific customer price group.
+
+    Parameters:
+        customer_price_group (str): The identifier for the customer price group to filter the commission configurations.
+
+    Returns:
+        List[PartnerCommissionConfiguration]: A list of commission configurations that match the specified customer price group.
+
+    Usage:
+        This function is used to retrieve commission configurations based on the specified customer price group to be presented as a table in the frontend.
+    """
     try:
         partner_configurations = partner_commission_configuration_service.listConfigurations(customer_price_group)
         response_content = [partner_configuration.serialize() for partner_configuration in partner_configurations]
@@ -235,3 +295,163 @@ async def get_partner_configurations(request: Request, customer_price_group: str
         status_code = 500
     return JsonOrXmlResponse(content= response_content, request=request, status_code=status_code)
 
+
+
+
+
+
+
+
+
+@business_logic_router.get("/item_groups")
+async def getItemGroups(request: Request, level:int, customer_price_group: Optional[str] = None, item_catalog_service: ItemCatalogService = Depends(get_item_catalog_service)):
+    """
+    Lists all the item groups of the specified level in the product hierarchy for a specific customer price group.
+
+    Parameters:
+        level (int): The level of the item groups to retrieve (1 or 2).
+        customer_price_group (Optional[str]): The identifier for the customer price group to filter the item groups (default is None).
+
+    Returns:
+        List[Dict[str,str]]: A list of objects containing the code and description of item groups at the specified level that match the customer price group.
+
+    Usage:
+        This function is used to retrieve item groups based on their hierarchy level and customer price group to be presented as selectable options within a dropdown in the frontend.
+    """
+    try:
+        items = []
+        if level == 1:
+            items = await item_catalog_service.get_item_groups_1(customer_price_group)
+        elif level == 2:
+            items = await item_catalog_service.get_item_groups_2(customer_price_group)
+        else:
+            response_content = {
+                "errorMessage": "Bad request",
+                "displayMessage": "level should be either 1 or 2"
+            }
+            status_code = 403
+        response_content = items
+        status_code = 200
+    except Exception as e:
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to retrieve group 1 items catalog."
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content= response_content, request=request, status_code=status_code)
+
+@business_logic_router.post("/item_configuration")
+async def createItemConfiguration(request:Request, item_configuration: ItemConfiguration, user_mod: str, item_commission_configuration_service:ItemCommissionConfigurationService=Depends(get_item_commission_configuration_service)):
+    """
+    Creates a new commission configuration for a specific combination of item groups and a specific customer price group.
+
+    Parameters:
+        item_configuration (ItemConfiguration): An object containing the details for the new item configuration, including:
+            - group1 (str): The identifier for the item group of level 1 in the hierarchy.
+            - group1_description (str): The description of the level 1 group, for displaying purposes.
+            - group2 (str): The identifier for the item group of level 2 in the hierarchy.
+            - group2_description (str): The description of the level 2 group, for displaying purposes.
+            - customer_price_group (str): The identifier for the customer price group.
+            - commission_percent (float): The commission percentage to set.
+        user_mod (str): The identifier of the user making the creation.
+
+    Returns:
+        ItemCommissionConfiguration: The newly created item commission configuration object.
+
+    Usage:
+        This function is used to create a new item commission configuration based on the selected item groups and customer price group.
+    """
+    try:
+        item_configuration = item_commission_configuration_service.createConfiguration(item_configuration, user_mod)
+        response_content = item_configuration.serialize()
+        status_code = 200
+    except Exception as e:
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to create an item configuration."
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
+
+@business_logic_router.patch("/item_configurations")
+async def updateItemConfigurations(request:Request, item_configurations: List[ItemConfigurationUpdate], user_mod: str, item_commission_configuration_service:ItemCommissionConfigurationService=Depends(get_item_commission_configuration_service)):
+    """
+    Updates existing configurations based on the provided configuration IDs. Only editable fields are updated (commission percent).
+
+    Parameters:
+        item_configurations (List[ItemConfigurationUpdate]): A list of objects containing the updated values for each configuration, including:
+            - id (int): The ID of the configuration to be updated.
+            - commission_percent (float): The new commission percentage to set.
+        user_mod (str): The identifier of the user making the modifications.
+
+    Returns:
+        List[ItemCommissionConfiguration]: A list of the updated configuration objects after the changes have been applied.
+
+    Usage:
+        This function is used to modify existing item commission configurations in bulk, allowing for updates to commission rates of multiple records at once.
+    """
+    try:
+        updated_configurations = item_commission_configuration_service.bulkUpdateConfigurations(item_configurations, user_mod)
+        response_content = [updated_configuration.serialize() for updated_configuration in updated_configurations]
+        status_code = 200
+    except Exception as e:
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to update an item configuration."
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
+
+@business_logic_router.get("/item_configurations")
+async def get_item_configurations(request: Request, customer_price_group: str, item_commission_configuration_service:ItemCommissionConfigurationService=Depends(get_item_commission_configuration_service)):
+    """
+    Returns a list of commission configurations by item group combination for a specific customer price group.
+
+    Parameters:
+        customer_price_group (str): The identifier for the customer price group to filter the commission configurations.
+
+    Returns:
+        List[ItemCommissionConfiguration]: A list of commission configurations that match the specified customer price group.
+
+    Usage:
+        This function is used to retrieve commission configurations based on the specified customer price group,
+        allowing for tailored commission management based on customer classifications.
+    """
+    try:
+        item_configurations = item_commission_configuration_service.listConfigurations(customer_price_group)
+        response_content = [item_configuration.serialize() for item_configuration in item_configurations]
+        status_code = 200
+    except Exception as e: 
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to retrieve item configurations"
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content= response_content, request=request, status_code=status_code)
+
+@business_logic_router.get("/items")
+async def getItems(request: Request, group1:str, group2:Optional[str]=None,item_catalog_service:ItemCatalogService=Depends(get_item_catalog_service)):
+    """
+    Returns a list of items available in the specified groups.
+
+    Parameters:
+        group1 (str): The identifier for the first item group.
+        group2 (Optional[str]): The identifier for the second item group (default is None).
+
+    Returns:
+        List[Item]: A list of items available in the specified groups.
+
+    Usage:
+        This function is used for information purposes to retrieve items based on their group classifications.
+    """
+    try:
+        items = await item_catalog_service.get_items_in_group(group1, group2)
+        response_content = items
+        status_code = 200
+    except Exception as e: 
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to retrieve items"
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content= response_content, request=request, status_code=status_code)

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, JSON, Enum
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, JSON, Enum, UniqueConstraint
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
 import enum
@@ -81,7 +81,7 @@ class PartnerCommissionConfiguration(Base):
     __tablename__ = 'partner_commission_configuration'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    personnel_number = Column(String, nullable=False, unique=True, index=True)
+    personnel_number = Column(String, nullable=False, index=True)
     full_name = Column(String, nullable=False)
     commission_percent = Column(Float, nullable=False)
     fixed_fee = Column(Float, nullable=False)
@@ -89,6 +89,8 @@ class PartnerCommissionConfiguration(Base):
     date_created = Column(DateTime, default=datetime.utcnow)
     last_modified_date = Column(DateTime, default=datetime.utcnow)
     last_modified_user = Column(String)
+
+    __table_args__ = (UniqueConstraint('customer_price_group', 'personnel_number', name='uq_personnel_number'),)
 
     def serialize(self):
         return {
@@ -102,4 +104,35 @@ class PartnerCommissionConfiguration(Base):
             "last_modified_date": self.last_modified_date.isoformat() if self.last_modified_date else None,
             "last_modified_user": self.last_modified_user,
         }
+
+class ItemCommissionConfiguration(Base):
+    __tablename__ = 'item_commission_configuration'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    group1 = Column(String, nullable=False)
+    group1_description = Column(String, nullable=False)
+    group2 = Column(String, nullable=True)
+    group2_description = Column(String, nullable=True)
+    commission_percent = Column(Float, nullable=False)
+    customer_price_group = Column(String, nullable=False, index=True)
+    date_created = Column(DateTime, default=datetime.utcnow)
+    last_modified_date = Column(DateTime, default=datetime.utcnow)
+    last_modified_user = Column(String)
+
+    __table_args__ = (UniqueConstraint('customer_price_group', 'group1', 'group2', name='uq_group1_group2'),)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "group1": self.group1,
+            "group1_description": self.group1_description,
+            "group2": self.group2,
+            "group2_description": self.group2_description,
+            "commission_percent": self.commission_percent,
+            "customer_price_group": self.customer_price_group,
+            "date_created": self.date_created.isoformat() if self.date_created else None,
+            "last_modified_date": self.last_modified_date.isoformat() if self.last_modified_date else None,
+            "last_modified_user": self.last_modified_user,
+        }
+
 

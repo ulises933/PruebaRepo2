@@ -6,8 +6,10 @@ from .sap_api_service import SAPApiService
 from .sap_odata_service import SAPODataService
 from .legacy_system_service import LegacySystemService
 from .partner_catalog_service import PartnerCatalogService
+from .item_catalog_service import ItemCatalogService
 from .factura_tracking_service import BillingDocumentTrackingService
 from .partner_commission_configuration_service import PartnerCommissionConfigurationService
+from .item_commission_configuration_service import ItemCommissionConfigurationService
 from .corte_mensual_service import MonthlyCutService
 from .comisiones_service import CommissionsService
 
@@ -28,10 +30,20 @@ def get_partner_commission_configuration_service(
 ) -> PartnerCommissionConfigurationService:
     return PartnerCommissionConfigurationService(db)
 
+def get_item_commission_configuration_service(
+    db: Session = Depends(get_db),
+) -> ItemCommissionConfigurationService:
+    return ItemCommissionConfigurationService(db)
+
 def get_partner_catalog_service(
     sap_api_service: SAPApiService = Depends(get_sap_api_service)
 ) -> PartnerCatalogService:
     return PartnerCatalogService(sap_api_service)
+
+def get_item_catalog_service(
+    sap_api_service: SAPApiService = Depends(get_sap_api_service)
+) -> ItemCatalogService:
+    return ItemCatalogService(sap_api_service)
 
 def get_billing_doc_tracking_service(
     db: Session = Depends(get_db),

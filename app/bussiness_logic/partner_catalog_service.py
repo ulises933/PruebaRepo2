@@ -41,8 +41,8 @@ class PartnerCatalogService:
                 partner_info = item['to_Partner']['A_BillingDocumentItemPartnerType']
                 partner_tuple = (partner_info['Personnel'], partner_info['FullName'])
                 partners_set.add(partner_tuple) 
-        partners = [{"personnel_number": personnel_number, "full_name": full_name} for personnel_number, full_name in partners_set]
-        return partners
+        unique_partners = [{"personnel_number": personnel_number, "full_name": full_name} for personnel_number, full_name in partners_set]
+        return unique_partners
         
 
 
