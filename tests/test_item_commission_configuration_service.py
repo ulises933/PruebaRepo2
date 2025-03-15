@@ -51,7 +51,7 @@ async def test_list_configurations(item_commission_configuration_service, db_ses
         customer_price_group="A")]
     db_session_mock.query.return_value.filter_by.return_value.all.return_value = mock_configurations
     
-    result = item_commission_configuration_service.listConfigurations("A")
+    result = item_commission_configuration_service.list_configurations("A")
     
     assert len(result) == 1
     assert result[0].group1 == "abc"
@@ -61,7 +61,7 @@ async def test_list_configurations(item_commission_configuration_service, db_ses
 async def test_get_configuration(item_commission_configuration_service, db_session_mock, item_configuration_data):
     db_session_mock.query.return_value.filter_by.return_value.first.return_value = ItemCommissionConfiguration(**item_configuration_data.model_dump())
     
-    result = item_commission_configuration_service.getConfiguration("A", "abc", "def")
+    result = item_commission_configuration_service.get_configuration("A", "abc", "def")
     
     assert result.group1_description == "group1 description"
     assert result.commission_percent == 10.0
@@ -71,7 +71,7 @@ async def test_create_configuration(item_commission_configuration_service, db_se
     db_session_mock.add = mocker.Mock()
     db_session_mock.commit = mocker.Mock()
     
-    result = item_commission_configuration_service.createConfiguration(item_configuration_data, "test_user")
+    result = item_commission_configuration_service.create_configuration(item_configuration_data, "test_user")
     
     assert result.group1_description == "group1 description"
     assert result.commission_percent == 10.0
@@ -89,7 +89,7 @@ async def test_update_configuration(item_commission_configuration_service, db_se
         commission_percent=15.0,
     )
     
-    result = item_commission_configuration_service.updateConfiguration(updated_data, "test_user")
+    result = item_commission_configuration_service.update_configuration(updated_data, "test_user")
     
     assert result.commission_percent == 15.0
     db_session_mock.commit.assert_called_once()
@@ -99,7 +99,7 @@ async def test_update_configuration_not_found(item_commission_configuration_serv
     db_session_mock.query.return_value.get.return_value = None
     
     with pytest.raises(ItemConfigurationDoesNotExistError):
-        item_commission_configuration_service.updateConfiguration(ItemConfigurationUpdate(id=1,commission_percent=0.1), "test_user")
+        item_commission_configuration_service.update_configuration(ItemConfigurationUpdate(id=1,commission_percent=0.1), "test_user")
 
 def test_bulk_update_configurations(test_db):
     service = ItemCommissionConfigurationService(test_db)
@@ -148,7 +148,7 @@ def test_bulk_update_configurations(test_db):
         )
     ]
 
-    updated_configurations = service.bulkUpdateConfigurations(updated_data, user_mod='admin')
+    updated_configurations = service.bulk_update_configurations(updated_data, user_mod='admin')
 
     for config in updated_configurations:
         db_config = test_db.query(ItemCommissionConfiguration).filter_by(group1=config.group1,group2=config.group2,customer_price_group=config.customer_price_group).first()

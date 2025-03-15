@@ -22,15 +22,15 @@ class ItemCommissionConfigurationService:
     def __init__(self, db: Session):
         self.db = db
     
-    def listConfigurations(self, customer_price_group: str) -> List[ItemCommissionConfiguration]:
+    def list_configurations(self, customer_price_group: str) -> List[ItemCommissionConfiguration]:
         item_configurations = self.db.query(ItemCommissionConfiguration).filter_by(customer_price_group=customer_price_group).all()
         return item_configurations
     
-    def getConfiguration(self, customer_price_group: str, group1: str, group2: str) -> List[ItemCommissionConfiguration]:
+    def get_configuration(self, customer_price_group: str, group1: str, group2: str) -> List[ItemCommissionConfiguration]:
         item_configuration = self.db.query(ItemCommissionConfiguration).filter_by(group1=group1,group2=group2,customer_price_group=customer_price_group).first()
         return item_configuration
 
-    def createConfiguration(self, ItemConfiguration: ItemConfiguration, user_mod: str) -> ItemCommissionConfiguration:
+    def create_configuration(self, ItemConfiguration: ItemConfiguration, user_mod: str) -> ItemCommissionConfiguration:
         commission_config = ItemCommissionConfiguration(
             date_created=datetime.now(UTC),
             last_modified_date=datetime.now(UTC),
@@ -41,7 +41,7 @@ class ItemCommissionConfigurationService:
         self.db.commit()
         return commission_config
 
-    def updateConfiguration(self, itemConfigurationUpdate: ItemConfigurationUpdate, user_mod: str) -> ItemCommissionConfiguration:
+    def update_configuration(self, itemConfigurationUpdate: ItemConfigurationUpdate, user_mod: str) -> ItemCommissionConfiguration:
         item_configuration = self.db.query(ItemCommissionConfiguration).get(itemConfigurationUpdate.id)
         if not item_configuration:
             raise ItemConfigurationDoesNotExistError(id)
@@ -52,7 +52,7 @@ class ItemCommissionConfigurationService:
             self.db.commit()
         return item_configuration
 
-    def bulkUpdateConfigurations(self, itemConfigurationUpdates: List[ItemConfigurationUpdate], user_mod: str) -> List[ItemCommissionConfiguration]:
+    def bulk_update_configurations(self, itemConfigurationUpdates: List[ItemConfigurationUpdate], user_mod: str) -> List[ItemCommissionConfiguration]:
         update_data = [
             {
                 'id': itemConfiguration.id,
@@ -76,7 +76,7 @@ class ItemCommissionConfigurationService:
         return itemConfigurations 
 
     def get_commission_rate(self, customer_price_group: str, group1: str, group2: str) -> float:
-        item_configuration = self.getConfiguration(customer_price_group, group1, group2)
+        item_configuration = self.get_configuration(customer_price_group, group1, group2)
         commission_rate = 0
         if item_configuration:
             commission_rate = item_configuration["commission_percent"]

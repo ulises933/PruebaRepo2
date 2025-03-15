@@ -23,15 +23,15 @@ class PartnerCommissionConfigurationService:
     def __init__(self, db: Session):
         self.db = db
     
-    def listConfigurations(self, customer_price_group: str) -> List[PartnerCommissionConfiguration]:
+    def list_configurations(self, customer_price_group: str) -> List[PartnerCommissionConfiguration]:
         partner_configurations = self.db.query(PartnerCommissionConfiguration).filter_by(customer_price_group=customer_price_group).all()
         return partner_configurations
     
-    def getConfiguration(self, personnel_number: str) -> List[PartnerCommissionConfiguration]:
+    def get_configuration(self, personnel_number: str) -> List[PartnerCommissionConfiguration]:
         partner_configuration = self.db.query(PartnerCommissionConfiguration).filter_by(personnel_number=personnel_number).first()
         return partner_configuration
 
-    def createConfiguration(self, partnerConfiguration: PartnerConfiguration, user_mod: str) -> PartnerCommissionConfiguration:
+    def create_configuration(self, partnerConfiguration: PartnerConfiguration, user_mod: str) -> PartnerCommissionConfiguration:
         commission_config = PartnerCommissionConfiguration(
             date_created=datetime.now(UTC),
             last_modified_date=datetime.now(UTC),
@@ -42,7 +42,7 @@ class PartnerCommissionConfigurationService:
         self.db.commit() 
         return commission_config
 
-    def updateConfiguration(self, partnerConfigurationUpdate: PartnerConfigurationUpdate, user_mod: str) -> PartnerCommissionConfiguration:
+    def update_configuration(self, partnerConfigurationUpdate: PartnerConfigurationUpdate, user_mod: str) -> PartnerCommissionConfiguration:
         partner_configuration = self.db.query(PartnerCommissionConfiguration).get(partnerConfigurationUpdate.id)
 
         if not partner_configuration:
@@ -57,20 +57,20 @@ class PartnerCommissionConfigurationService:
         return partner_configuration
 
     def get_commission_rate(self, personnel_number: str) -> float:
-        partner_configuration = self.getConfiguration(personnel_number)
+        partner_configuration = self.get_configuration(personnel_number)
         commission_rate = 1
         if partner_configuration:
             commission_rate = partner_configuration["commission_percent"]
         return commission_rate
 
     def get_fixed_fee(self, personnel_number: str) -> float:
-        partner_configuration = self.getConfiguration(personnel_number)
+        partner_configuration = self.get_configuration(personnel_number)
         fixed_fee = 0
         if partner_configuration:
             fixed_fee = partner_configuration["fixed_fee"]
         return fixed_fee
 
-    def bulkUpdateConfigurations(self, partnerConfigurationUpdates: List[PartnerConfigurationUpdate], user_mod: str) -> List[PartnerCommissionConfiguration]:
+    def bulk_update_configurations(self, partnerConfigurationUpdates: List[PartnerConfigurationUpdate], user_mod: str) -> List[PartnerCommissionConfiguration]:
         update_data = [
             {
                 'id': partnerConfiguration.id,

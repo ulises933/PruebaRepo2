@@ -81,7 +81,7 @@ class PartnerCommissionConfiguration(Base):
     __tablename__ = 'partner_commission_configuration'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    personnel_number = Column(String, nullable=False, index=True)
+    personnel_number = Column(String, nullable=False, unique=True, index=True)
     full_name = Column(String, nullable=False)
     commission_percent = Column(Float, nullable=False)
     fixed_fee = Column(Float, nullable=False)

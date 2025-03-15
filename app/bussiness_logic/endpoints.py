@@ -25,6 +25,18 @@ from app.xm_json_response import JsonOrXmlResponse
 
 business_logic_router = APIRouter()
 
+def serialize_list(items):
+    """
+    Helper function to serialize a list of objects.
+    
+    Args:
+        items: List of objects with a serialize method
+        
+    Returns:
+        List of serialized objects
+    """
+    return [item.serialize() for item in items]
+
 class BillingDocument(BaseModel):
     id: int
     status: BillingDocumentStatus
@@ -35,9 +47,9 @@ class BillingDocumentRequest(BaseModel):
     user_mod: str
 
 @business_logic_router.get("/billing_documents")
-async def getBillingDocuments(request:Request, billing_doc_tracking_service:BillingDocumentTrackingService=Depends(get_billing_doc_tracking_service)):
+async def get_billing_documents(request:Request, billing_doc_tracking_service:BillingDocumentTrackingService=Depends(get_billing_doc_tracking_service)):
     billing_documents = billing_doc_tracking_service.get_billing_documents()
-    response_content = [billing_document.serialize() for billing_document in billing_documents]
+    response_content = serialize_list(billing_documents)
     status_code = 200
     return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
 
@@ -45,7 +57,7 @@ async def getBillingDocuments(request:Request, billing_doc_tracking_service:Bill
 @business_logic_router.get("/monthly_cut")
 async def get_monthly_cuts(request:Request, monthly_cut_service:MonthlyCutService=Depends(get_monthly_cut_service)):
     monthly_cuts = monthly_cut_service.get_monthly_cuts()
-    response_content = [monthly_cut.serialize() for monthly_cut in monthly_cuts]
+    response_content = serialize_list(monthly_cuts)
     status_code = 200
     return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
 
@@ -89,9 +101,9 @@ async def comission_summary(
     commissions_service: CommissionsService = Depends(get_comisiones_service)
 ):
     try :
-        billing_documents = await commissions_service.getBillingDocuments(year, month, personnel_number, customer_price_group, language)
+        billing_documents = await commissions_service.get_billing_documents(year, month, personnel_number, customer_price_group, language)
         response_content = {
-            "returnData": [billing_document.serialize() for billing_document in billing_documents],
+            "returnData": serialize_list(billing_documents),
             "displayMessage": "Billing documents successfully retrieved."
         }
         status_code = 200
@@ -204,7 +216,7 @@ async def get_partners(request: Request, customer_price_group: Optional[str] = N
     return JsonOrXmlResponse(content= response_content, request=request, status_code=status_code)
 
 @business_logic_router.post("/partner_configuration")
-async def createPartnerConfiguration(request:Request, partner_configuration: PartnerConfiguration, user_mod: str, partner_commission_configuration_service:PartnerCommissionConfigurationService=Depends(get_partner_commission_configuration_service)):
+async def create_partner_configuration(request:Request, partner_configuration: PartnerConfiguration, user_mod: str, partner_commission_configuration_service:PartnerCommissionConfigurationService=Depends(get_partner_commission_configuration_service)):
     """
     Creates a new commission configuration for a specific partner.
 
@@ -225,7 +237,7 @@ async def createPartnerConfiguration(request:Request, partner_configuration: Par
     """
     
     try:
-        partner_configuration = partner_commission_configuration_service.createConfiguration(partner_configuration, user_mod)
+        partner_configuration = partner_commission_configuration_service.create_configuration(partner_configuration, user_mod)
         response_content = partner_configuration.serialize()
         status_code = 200
     except Exception as e:
@@ -238,7 +250,7 @@ async def createPartnerConfiguration(request:Request, partner_configuration: Par
     return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
 
 @business_logic_router.patch("/partner_configurations")
-async def updatePartnerConfigurations(request:Request, partner_configurations: List[PartnerConfigurationUpdate], user_mod: str, partner_commission_configuration_service:PartnerCommissionConfigurationService=Depends(get_partner_commission_configuration_service)):
+async def update_partner_configurations(request:Request, partner_configurations: List[PartnerConfigurationUpdate], user_mod: str, partner_commission_configuration_service:PartnerCommissionConfigurationService=Depends(get_partner_commission_configuration_service)):
     """
     Updates existing configurations based on the provided configuration IDs. Only editable fields are updated (commission percent & fixed fee).
 
@@ -256,8 +268,8 @@ async def updatePartnerConfigurations(request:Request, partner_configurations: L
         This function is used to modify existing partner commission configurations in bulk, allowing for updates to commission rates and fees of multiple records at once.
     """
     try:
-        updated_configurations = partner_commission_configuration_service.bulkUpdateConfigurations(partner_configurations, user_mod)
-        response_content = [updated_configuration.serialize() for updated_configuration in updated_configurations]
+        updated_configurations = partner_commission_configuration_service.bulk_update_configurations(partner_configurations, user_mod)
+        response_content = serialize_list(updated_configurations)
         status_code = 200
     except Exception as e:
         logging.exception(e)
@@ -283,8 +295,8 @@ async def get_partner_configurations(request: Request, customer_price_group: str
         This function is used to retrieve commission configurations based on the specified customer price group to be presented as a table in the frontend.
     """
     try:
-        partner_configurations = partner_commission_configuration_service.listConfigurations(customer_price_group)
-        response_content = [partner_configuration.serialize() for partner_configuration in partner_configurations]
+        partner_configurations = partner_commission_configuration_service.list_configurations(customer_price_group)
+        response_content = serialize_list(partner_configurations)
         status_code = 200
     except Exception as e:
         logging.exception(e)
@@ -296,15 +308,8 @@ async def get_partner_configurations(request: Request, customer_price_group: str
     return JsonOrXmlResponse(content= response_content, request=request, status_code=status_code)
 
 
-
-
-
-
-
-
-
 @business_logic_router.get("/item_groups")
-async def getItemGroups(request: Request, level:int, customer_price_group: Optional[str] = None, item_catalog_service: ItemCatalogService = Depends(get_item_catalog_service)):
+async def get_item_groups(request: Request, level:int, customer_price_group: Optional[str] = None, item_catalog_service: ItemCatalogService = Depends(get_item_catalog_service)):
     """
     Lists all the item groups of the specified level in the product hierarchy for a specific customer price group.
 
@@ -318,20 +323,20 @@ async def getItemGroups(request: Request, level:int, customer_price_group: Optio
     Usage:
         This function is used to retrieve item groups based on their hierarchy level and customer price group to be presented as selectable options within a dropdown in the frontend.
     """
+    level_selector = {
+        1: item_catalog_service.get_item_groups_1,
+        2: item_catalog_service.get_item_groups_2,
+    }
     try:
-        items = []
-        if level == 1:
-            items = await item_catalog_service.get_item_groups_1(customer_price_group)
-        elif level == 2:
-            items = await item_catalog_service.get_item_groups_2(customer_price_group)
-        else:
+        if level not in level_selector:
             response_content = {
                 "errorMessage": "Bad request",
-                "displayMessage": "level should be either 1 or 2"
+                "displayMessage": f"level should be one of the following: {list(level_selector.keys())}"
             }
             status_code = 403
-        response_content = items
-        status_code = 200
+        else:
+            response_content = await level_selector[level](customer_price_group)
+            status_code = 200
     except Exception as e:
         response_content = {
             "errorMessage": str(e),
@@ -341,7 +346,7 @@ async def getItemGroups(request: Request, level:int, customer_price_group: Optio
     return JsonOrXmlResponse(content= response_content, request=request, status_code=status_code)
 
 @business_logic_router.post("/item_configuration")
-async def createItemConfiguration(request:Request, item_configuration: ItemConfiguration, user_mod: str, item_commission_configuration_service:ItemCommissionConfigurationService=Depends(get_item_commission_configuration_service)):
+async def create_item_configuration(request:Request, item_configuration: ItemConfiguration, user_mod: str, item_commission_configuration_service:ItemCommissionConfigurationService=Depends(get_item_commission_configuration_service)):
     """
     Creates a new commission configuration for a specific combination of item groups and a specific customer price group.
 
@@ -362,7 +367,7 @@ async def createItemConfiguration(request:Request, item_configuration: ItemConfi
         This function is used to create a new item commission configuration based on the selected item groups and customer price group.
     """
     try:
-        item_configuration = item_commission_configuration_service.createConfiguration(item_configuration, user_mod)
+        item_configuration = item_commission_configuration_service.create_configuration(item_configuration, user_mod)
         response_content = item_configuration.serialize()
         status_code = 200
     except Exception as e:
@@ -374,7 +379,7 @@ async def createItemConfiguration(request:Request, item_configuration: ItemConfi
     return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
 
 @business_logic_router.patch("/item_configurations")
-async def updateItemConfigurations(request:Request, item_configurations: List[ItemConfigurationUpdate], user_mod: str, item_commission_configuration_service:ItemCommissionConfigurationService=Depends(get_item_commission_configuration_service)):
+async def update_item_configurations(request:Request, item_configurations: List[ItemConfigurationUpdate], user_mod: str, item_commission_configuration_service:ItemCommissionConfigurationService=Depends(get_item_commission_configuration_service)):
     """
     Updates existing configurations based on the provided configuration IDs. Only editable fields are updated (commission percent).
 
@@ -391,8 +396,8 @@ async def updateItemConfigurations(request:Request, item_configurations: List[It
         This function is used to modify existing item commission configurations in bulk, allowing for updates to commission rates of multiple records at once.
     """
     try:
-        updated_configurations = item_commission_configuration_service.bulkUpdateConfigurations(item_configurations, user_mod)
-        response_content = [updated_configuration.serialize() for updated_configuration in updated_configurations]
+        updated_configurations = item_commission_configuration_service.bulk_update_configurations(item_configurations, user_mod)
+        response_content = serialize_list(updated_configurations)
         status_code = 200
     except Exception as e:
         response_content = {
@@ -418,8 +423,8 @@ async def get_item_configurations(request: Request, customer_price_group: str, i
         allowing for tailored commission management based on customer classifications.
     """
     try:
-        item_configurations = item_commission_configuration_service.listConfigurations(customer_price_group)
-        response_content = [item_configuration.serialize() for item_configuration in item_configurations]
+        item_configurations = item_commission_configuration_service.list_configurations(customer_price_group)
+        response_content = serialize_list(item_configurations)
         status_code = 200
     except Exception as e: 
         response_content = {
@@ -430,7 +435,7 @@ async def get_item_configurations(request: Request, customer_price_group: str, i
     return JsonOrXmlResponse(content= response_content, request=request, status_code=status_code)
 
 @business_logic_router.get("/items")
-async def getItems(request: Request, group1:str, group2:Optional[str]=None,item_catalog_service:ItemCatalogService=Depends(get_item_catalog_service)):
+async def get_items(request: Request, group1:str, group2:Optional[str]=None,item_catalog_service:ItemCatalogService=Depends(get_item_catalog_service)):
     """
     Returns a list of items available in the specified groups.
 

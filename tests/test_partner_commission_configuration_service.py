@@ -44,7 +44,7 @@ async def test_list_configurations(partner_commission_configuration_service, db_
     mock_configurations = [PartnerCommissionConfiguration(personnel_number="123", full_name="John Doe", commission_percent=10.0, fixed_fee=100.0, customer_price_group="A")]
     db_session_mock.query.return_value.filter_by.return_value.all.return_value = mock_configurations
     
-    result = partner_commission_configuration_service.listConfigurations("A")
+    result = partner_commission_configuration_service.list_configurations("A")
     
     assert len(result) == 1
     assert result[0].personnel_number == "123"
@@ -54,7 +54,7 @@ async def test_list_configurations(partner_commission_configuration_service, db_
 async def test_get_configuration(partner_commission_configuration_service, db_session_mock, partner_configuration_data):
     db_session_mock.query.return_value.filter_by.return_value.first.return_value = PartnerCommissionConfiguration(**partner_configuration_data.model_dump())
     
-    result = partner_commission_configuration_service.getConfiguration("123")
+    result = partner_commission_configuration_service.get_configuration("123")
     
     assert result.personnel_number == "123"
     assert result.full_name == "John Doe"
@@ -64,7 +64,7 @@ async def test_create_configuration(partner_commission_configuration_service, db
     db_session_mock.add = mocker.Mock()
     db_session_mock.commit = mocker.Mock()
     
-    result = partner_commission_configuration_service.createConfiguration(partner_configuration_data, "test_user")
+    result = partner_commission_configuration_service.create_configuration(partner_configuration_data, "test_user")
     
     assert result.personnel_number == "123"
     assert result.full_name == "John Doe"
@@ -82,7 +82,7 @@ async def test_update_configuration(partner_commission_configuration_service, db
         fixed_fee=150.0,
     )
     
-    result = partner_commission_configuration_service.updateConfiguration(updated_data, "test_user")
+    result = partner_commission_configuration_service.update_configuration(updated_data, "test_user")
     
     assert result.commission_percent == 15.0
     assert result.fixed_fee == 150.0
@@ -93,7 +93,7 @@ async def test_update_configuration_not_found(partner_commission_configuration_s
     db_session_mock.query.return_value.get.return_value = None
     
     with pytest.raises(PartnerConfigurationDoesNotExistError):
-        partner_commission_configuration_service.updateConfiguration(PartnerConfigurationUpdate(id=1,commission_percent=10.0, fixed_fee=100.0), "test_user")
+        partner_commission_configuration_service.update_configuration(PartnerConfigurationUpdate(id=1,commission_percent=10.0, fixed_fee=100.0), "test_user")
 
 def test_bulk_update_configurations(test_db):
     service = PartnerCommissionConfigurationService(test_db)
@@ -143,7 +143,7 @@ def test_bulk_update_configurations(test_db):
     ]
 
     # Call the bulk update method
-    updated_configurations = service.bulkUpdateConfigurations(updated_data, user_mod='admin')
+    updated_configurations = service.bulk_update_configurations(updated_data, user_mod='admin')
 
     # Verify the updates
     for config in updated_configurations:
