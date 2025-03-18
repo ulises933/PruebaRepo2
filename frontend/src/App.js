@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import { AuthProviderSSO } from "./context/AuthContextSSO";
 import CommissionsSummary from "./pages/CommissionsSummary";
 import PaymentsControl from "./pages/PaymentsControl";
+import CommissionsConfig from "./pages/CommissionsConfig";
 import PrivateRoute from "./components/PrivateRoute";
 import MonthlyCutSummary from "./pages/MonthlyCutSummary"; // NEW
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -50,6 +51,10 @@ function App({ msalInstance }) {
 
                     {/* Protected routes */}
                     <Route element={<PrivateRoute />}>
+                      <Route
+                        path="/commissions-config"
+                        element={<CommissionsConfig />}
+                      />
                       <Route
                         path="/commissions-summary"
                         element={<CommissionsSummary />}
