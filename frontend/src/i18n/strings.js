@@ -81,7 +81,7 @@ export const strings = {
     full_name: "Full Name",
     edit: "Edit",
     done: "Done",
-    no_partners_found: "No partners found",
+    no_partners_found: "No partner configurations found",
     no_partners_to_add: "No partners available to add",
     no_items_found: "No items found",
     partner: "Partner",
