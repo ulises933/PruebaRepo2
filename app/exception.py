@@ -14,10 +14,13 @@ logging_level_selector = {
     'CRITICAL': logging.critical,
     'FATAL': logging.fatal
 }
+class ItemConfigurationDoesNotExistError(Exception):
+    def __init__(self,id:int):
+        super().__init__(f"There is no item configuration with id={id}")
 
 class PartnerConfigurationDoesNotExistError(Exception):
-    def __init__(self,personnel_number:str):
-        super().__init__(f"There is no partner configuration for partner with personnel_number = {personnel_number}")
+    def __init__(self,id:int):
+        super().__init__(f"There is no partner configuration with id={id}")
 class BillingDocumentOutOfBillingCycleError(Exception):
     def __init__(self, id:int):
         super().__init__(f"The billing document with id={id} is out of the current billing cycle")

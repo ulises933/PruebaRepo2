@@ -4,6 +4,7 @@ from app.env_variables import SAP_API_KEY, SAP_API_URL
 from datetime import datetime, timedelta
 import logging
 from typing import Optional
+from app.bussiness_logic.mock_facturas import mock_facturas_01, mock_facturas_08
 
 class SAPApiService:
     def __init__(self):
@@ -36,7 +37,7 @@ class SAPApiService:
             "PersonnelNumber": personnel_number,
             "Language": language
         }
-        
+
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(self.api_url, 
@@ -49,84 +50,20 @@ class SAPApiService:
                     else:
                         logging.error(f"Error when retrieving billing documents from SAP: {response.status}")
                         logging.info(f"Response: {await response.text()}")
-                        return self.get_mock_facturas()
+                        return self.get_mock_facturas(customer_price_group)
         except Exception as e: # TODO: raise the exception when done testing
             logging.error(f"Exception when trying to obtain billing documents from SAP: {str(e)}")
-            return self.get_mock_facturas()
+            return self.get_mock_facturas(customer_price_group)
 
-    def get_mock_facturas(self) -> Dict:
+    def get_mock_facturas(self, customer_price_group) -> Dict:
         """Returns a mock list of billing documents as a fallback"""
-        return {
-            "A_BillingDocumentType": [
-                {
-                    "BillingDocument": "1000000222",
-                    "BillingDocumentDate": "2025-01-02T00:00:00.000",
-                    "TotalAmount": "13.26",
-                    "CustomerPriceGroup": "08",
-                    "BillingDocumentStatus": "Completed",
-                    "InvoiceIsClearing": "false",
-                    "to_Item": {
-                        "A_BillingDocumentItemType": {
-                            "BillingDocumentItem": "10",
-                            "Material": "TG12",
-                            "MaterialDescription": "Trad.Good 12,Reorder Point,Reg.Trad.",
-                            "OldProductId": "",
-                            "to_Partner": {
-                                "A_BillingDocumentItemPartnerType": {
-                                    "Personnel": "00000008",
-                                    "FullName": "PU ROlES SD"
-                                }
-                            }
-                        }
-                    }
-                },
-                {
-                    "BillingDocument": "1000000231",
-                    "BillingDocumentDate": "2025-01-06T00:00:00.000",
-                    "TotalAmount": "79.56",
-                    "CustomerPriceGroup": "08",
-                    "BillingDocumentStatus": "Canceled",
-                    "InvoiceIsClearing": "false",
-                    "to_Item": {
-                        "A_BillingDocumentItemType": [
-                            {
-                                "BillingDocumentItem": "10",
-                                "Material": "TG12",
-                                "MaterialDescription": "Trad.Good 12,Reorder Point,Reg.Trad.",
-                                "OldProductId": "",
-                                "to_Partner": {
-                                    "A_BillingDocumentItemPartnerType": {
-                                        "Personnel": "00000008",
-                                        "FullName": "PU ROlES SD"
-                                    }
-                                }
-                            },
-                            {
-                                "BillingDocumentItem": "20",
-                                "Material": "TG12",
-                                "MaterialDescription": "Trad.Good 12,Reorder Point,Reg.Trad.",
-                                "OldProductId": "",
-                                "to_Partner": {
-                                    "A_BillingDocumentItemPartnerType": {
-                                        "Personnel": "00000008",
-                                        "FullName": "PU ROlES SD"
-                                    }
-                                }
-                            },
-                            {
-                                "BillingDocumentItem": "30",
-                                "Material": "TG12",
-                                "MaterialDescription": "Trad.Good 12,Reorder Point,Reg.Trad.",
-                                "OldProductId": "",
-                                "to_Partner": {
-                                    "A_BillingDocumentItemPartnerType": {
-                                        "Personnel": "00000008",
-                                        "FullName": "PU ROlES SD"
-                                    }
-                                }
-                            }
-                        ]
-                    }
-                },
-            ],
-        }
+        mock = {}
+        if customer_price_group=="01":
+            mock = mock_facturas_01
+        elif customer_price_group=="08":
+            mock = mock_facturas_08
+        else:
+            mock = {
+                "A_BillingDocumentType": mock_facturas_01["A_BillingDocumentType"] + mock_facturas_08["A_BillingDocumentType"]
+            }        
+        return mock

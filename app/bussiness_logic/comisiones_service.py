@@ -14,7 +14,7 @@ class CommissionsService:
         self.sap_api_service = sap_api_service
         self.sap_odata_service = sap_odata_service
 
-    async def getBillingDocuments(self, year: int, month: int, personnel_number: str, customer_price_group: str, language: str) -> List[BillingDocumentTracking]:
+    async def get_billing_documents(self, year: int, month: int, personnel_number: str, customer_price_group: str, language: str) -> List[BillingDocumentTracking]:
         """Gets the billing documents from a specific monthly_cut determined by the year and month"""
         monthly_cut = await self.monthly_cut_service.get_monthly_cut_by_period(year, month)
         tracking_data = []
@@ -53,7 +53,7 @@ class CommissionsService:
     async def close_monthly_cut(self, year: int, month: int,  personnel_number: str, customer_price_group: str, language: str, user: str) -> Dict:
         """sends the calculated commissions to SAP and closes the monthly cut"""
         
-        processed_bills = await self.getBillingDocuments(year, month, personnel_number, customer_price_group, language)
+        processed_bills = await self.get_billing_documents(year, month, personnel_number, customer_price_group, language)
         
         response = await self.sap_odata_service.send_invoice_to_sap(processed_bills, user)
         await self.monthly_cut_service.close_monthly_cut(year,month,user)

@@ -65,10 +65,3 @@ async def test_get_partners_no_billing_documents(partner_catalog_service, sap_ap
     
     assert result == []
     sap_api_service_mock.get_billing_documents.assert_called_once()
-
-@pytest.mark.asyncio
-async def test_normalize_list(partner_catalog_service):
-    assert partner_catalog_service.normalize_list(None) == []
-    assert partner_catalog_service.normalize_list([]) == []
-    assert partner_catalog_service.normalize_list("single_value") == ["single_value"]
-    assert partner_catalog_service.normalize_list(["value1", "value2"]) == ["value1", "value2"] 

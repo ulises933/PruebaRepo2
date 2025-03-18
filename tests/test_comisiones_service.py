@@ -69,7 +69,7 @@ async def test_get_billing_docs_open_monthly_cut(commissions_service, open_month
     })
     commissions_service.billing_doc_tracking_service.process_billing_document = AsyncMock(return_value=BillingDocumentTracking(id=1, billing_document="1000000222", total_amount=100.0))
     
-    result = await commissions_service.getBillingDocuments(2024, 12, "test_personnel", "test_group", "EN")
+    result = await commissions_service.get_billing_documents(2024, 12, "test_personnel", "test_group", "EN")
     
     assert len(result) == 1
     assert result[0].billing_document == "1000000222"
@@ -79,7 +79,7 @@ async def test_get_billing_docs_open_monthly_cut(commissions_service, open_month
 async def test_get_billing_docs_closed_monthly_cut(commissions_service, closed_monthly_cut, mocker):
     commissions_service.billing_doc_tracking_service.get_billing_documents_by_monthly_cut_id = mocker.Mock(return_value=[BillingDocumentTracking(id=1, billing_document="1000000222", total_amount=100.0)])
     
-    result = await commissions_service.getBillingDocuments(2024, 12, "test_personnel", "test_group", "EN")
+    result = await commissions_service.get_billing_documents(2024, 12, "test_personnel", "test_group", "EN")
     
     assert len(result) == 1
     assert result[0].billing_document == "1000000222"
@@ -93,7 +93,7 @@ async def test_get_billing_docs_invalid_status(commissions_service, open_monthly
         ]
     })
     
-    result = await commissions_service.getBillingDocuments(2024, 12, "test_personnel", "test_group", "EN")
+    result = await commissions_service.get_billing_documents(2024, 12, "test_personnel", "test_group", "EN")
     
     assert len(result) == 0
 
