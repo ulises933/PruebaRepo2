@@ -41,6 +41,9 @@ export const strings = {
     amount: "Amount",
     commission: "Commission",
     noArticles: "No articles found",
+    //Monthly Cut Summary
+    total_penalty: "Total Penalty",
+    net_commission: "Net Commission",
     // Payments Control
     paymentsTitle: "Payments Control",
     paymentDate: "Payment Date (YYYY-MM-DD)",
@@ -130,6 +133,9 @@ export const strings = {
     amount: "Importe",
     commission: "Comisión",
     noArticles: "No se encontraron artículos",
+    //Monthly Cut Summary
+    total_penalty: "Castigo Total",
+    net_commission: "Comisión Neta",
     // Payments Control
     paymentsTitle: "Control de Pagos",
     paymentDate: "Fecha de Pago (AAAA-MM-DD)",

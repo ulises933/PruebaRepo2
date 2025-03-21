@@ -24,7 +24,7 @@ export async function getCommissionsSummary(
   year = 2025,
   month = 3,
   personnel_number = "0",
-  customer_price_group = "",
+  customer_price_group = "08",
   language = "EN"
 ) {
   const params = new URLSearchParams({
@@ -50,6 +50,37 @@ export async function getCommissionsSummary(
 }
 
 /**
+ * Fetches commission totals by partner with specified query params:
+ *  - year
+ *  - month
+ *  - customer_price_group
+ */
+export async function getCommissionsByPartner(
+  year = new Date().getFullYear(),
+  month = new Date().getMonth()+1,
+  customer_price_group = "08",
+) {
+  const params = new URLSearchParams({
+    year: year.toString(),
+    month: month.toString(),
+    customer_price_group,
+  });
+
+  const url = `${appConfig.apiBaseUrl}/commissions_by_partner?${params}`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error("Error fetching commission totals");
+    }
+    const data = await response.json();
+    return data.data?.returnData || [];
+  } catch (error) {
+    throw new Error(`Failed to fetch commission totals: ${error.message}`);
+  }
+}
+
+/**
  * Updates (saves) invoice statuses by calling POST /guardar_cambios.
  *
  * The request body expects:
@@ -65,8 +96,8 @@ export async function saveInvoiceStatuses(
   usuarioModificador = "system_user"
 ) {
   const body = {
-    facturas_modificadas: facturas,
-    usuario_modificador: usuarioModificador,
+    modified_billing_docs: facturas,
+    user_mod: usuarioModificador,
   };
 
   const response = await fetch(`${appConfig.apiBaseUrl}/guardar_cambios`, {
@@ -100,7 +131,7 @@ export async function closeBillingCycle(
   month,
   user,
   personnel_number = "0",
-  customer_price_group = "",
+  customer_price_group = "08",
   language = "EN"
 ) {
   const body = {

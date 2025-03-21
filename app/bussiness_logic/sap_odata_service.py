@@ -18,9 +18,9 @@ class SAPODataService:
         token = base64.b64encode(credentials.encode()).decode()
         return token
 
-    async def send_invoice_to_sap(self, comission_billing_documents: List[BillingDocumentTracking], user: str):
+    async def send_invoice_to_sap(self, comissions_by_partner: List[Dict], user: str):
         """Sends commission imports by agent to SAP"""
-        json_data = self.build_json_body(comission_billing_documents, user)
+        json_data = self.build_json_body(comissions_by_partner, user)
         response = await self.make_request_call(json_data)
         return response
 
@@ -43,7 +43,7 @@ class SAPODataService:
                     return text
                       
 
-    def build_json_body(self, data: List[BillingDocumentTracking], user) -> Dict:
+    def build_json_body(self, data: List[Dict], user) -> Dict:
         
         original_reference_document_type = "BKPFF"
         business_transaction_type = "RFBU"
