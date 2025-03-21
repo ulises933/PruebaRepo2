@@ -5,7 +5,6 @@ import { useLanguage } from "../context/LanguageContext";
 import { useCommissions } from "../hooks/useCommissions";
 import { useFilter } from "../hooks/useFilter";
 import { usePagination } from "../hooks/usePagination";
-import { AlertModal } from "../components/common/AlertModal";
 import {
   saveInvoiceStatuses,
   closeBillingCycle,
@@ -22,16 +21,17 @@ import {
   TableRow,
   Pagination,
   Stack,
-  Alert,
   Accordion,
   AccordionSummary,
   AccordionDetails,
   Button,
+  CircularProgress,
+  TextField,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { ArticleDetails } from "../components/commissions/ArticleDetails";
-import { StatusSelect } from "../components/commissions/StatusSelect";
-import CommissionsFilters from "../components/commissions/CommissionsFilters";
+import { ArticleDetails } from "../components/commissions/summary/ArticleDetails";
+import { StatusSelect } from "../components/commissions/summary/StatusSelect";
+import CommissionsFilters from "../components/commissions/summary/CommissionsFilters";
 import { styled } from "@mui/material/styles";
 import dayjs from "dayjs";
 import {
@@ -45,6 +45,14 @@ import {
   ContentWrapper,
   BottomActionsContainer,
 } from "../components/commissions/styles/CommissionsStyles";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import Notification from "../components/common/Notification";
+import { InvoiceRow } from "../components/commissions/summary/InvoiceRow";
+import { TableHeader } from "../components/commissions/summary/TableHeader";
+import { InvoiceAccordion } from "../components/commissions/summary/InvoiceAccordion";
+import { BottomActions } from "../components/commissions/summary/BottomActions";
+import { useAuthSSO } from "../context/AuthContextSSO";
 
 /**
  * CommissionsSummary component displays a summary of commission data with filtering,
@@ -52,8 +60,10 @@ import {
  */
 function CommissionsSummary() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { ssoUser } = useAuthSSO();
   const { t } = useLanguage();
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
 
   // Initialize date state with current year and month
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -77,7 +87,15 @@ function CommissionsSummary() {
     filters,
     filteredItems: filteredInvoices,
     updateFilter,
-  } = useFilter(invoices, { seller: "", status: "" });
+  } = useFilter(invoices, { seller: "", status: "" }, (item, filters) => {
+    return (
+      (!filters.seller ||
+        item.seller?.toLowerCase().includes(filters.seller.toLowerCase())) &&
+      (!filters.status ||
+        (item.estatus || item.status)?.toLowerCase() ===
+          filters.status.toLowerCase())
+    );
+  });
 
   const {
     page,
@@ -89,7 +107,11 @@ function CommissionsSummary() {
   // UI state management
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingCut, setIsGeneratingCut] = useState(false);
-  const [alertModal, setAlertModal] = useState({ open: false });
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "info",
+  });
   const [expandedRow, setExpandedRow] = useState(null);
 
   // Initial data fetch
@@ -115,6 +137,19 @@ function CommissionsSummary() {
     );
   }, []);
 
+  // Add handler for penalty changes
+  const handlePenaltyChange = useCallback((id, newValue) => {
+    // Ensure the value is a valid number or empty
+    const numValue = newValue === "" ? 0 : parseFloat(newValue);
+    if (isNaN(numValue)) return;
+
+    setInvoices((prev) =>
+      prev.map((inv) =>
+        inv.id === id ? { ...inv, penalty_amount: numValue } : inv
+      )
+    );
+  }, []);
+
   /**
    * Handles saving changes to invoice statuses
    * Makes API call to save updated statuses and shows success/error message
@@ -124,29 +159,21 @@ function CommissionsSummary() {
 
     try {
       setIsSaving(true);
-      const payload = invoices.map(({ id, estatus, id_corte }) => ({
+      const payload = invoices.map(({ id, status, monthly_cut_id }) => ({
         id,
-        estatus,
-        id_corte,
+        status: status?.toLowerCase() || "pending",
+        monthly_cut_id: monthly_cut_id || 0,
       }));
 
-      await saveInvoiceStatuses(payload, user?.username || "system_user");
-
-      setAlertModal({
-        open: true,
-        title: "Success",
-        message: "Changes saved successfully",
-        severity: "success",
-      });
+      await saveInvoiceStatuses(payload, ssoUser?.username);
+      showNotification(t("changes_saved_successfully"), "success");
     } catch (err) {
-      setAlertModal({
-        open: true,
-        title: "Error",
-        message: err.message.includes("BillingCycleDoesNotExistError")
-          ? "No billing cycle has been created yet"
-          : "Error saving changes",
-        severity: "error",
-      });
+      showNotification(
+        err.message.includes("BillingCycleDoesNotExistError")
+          ? t("noBillingCycle")
+          : t("error_saving"),
+        "error"
+      );
     } finally {
       setIsSaving(false);
     }
@@ -164,29 +191,21 @@ function CommissionsSummary() {
       await closeBillingCycle({
         year: selectedDate.year,
         month: selectedDate.month,
-        user: user?.username || "system_user",
+        user: ssoUser?.username,
         personnel_number: "0",
         customer_price_group: "",
         language: "EN",
       });
 
-      setAlertModal({
-        open: true,
-        title: "Success",
-        message: "Billing cycle closed successfully",
-        severity: "success",
-        onConfirm: () =>
-          navigate(`/monthly-cut/${selectedDate.year}/${selectedDate.month}`),
-      });
+      showNotification(t("billingCycleClosed"), "success");
+      navigate(`/monthly-cut/${selectedDate.year}/${selectedDate.month}`);
     } catch (err) {
-      setAlertModal({
-        open: true,
-        title: "Error",
-        message: err.message.includes("ClosedBillingCycleError")
-          ? "This billing cycle has already been closed"
-          : "Error closing billing cycle",
-        severity: "error",
-      });
+      showNotification(
+        err.message.includes("ClosedBillingCycleError")
+          ? t("billingCycleAlreadyClosed")
+          : t("errorClosingBillingCycle"),
+        "error"
+      );
     } finally {
       setIsGeneratingCut(false);
     }
@@ -202,14 +221,29 @@ function CommissionsSummary() {
         <StyledTableCell className="cell-doc text-center">
           {inv.documento_facturacion || inv.billing_document || "N/A"}
         </StyledTableCell>
-        <StyledTableCell className="cell-actions text-center">
-          {/* actions */}
-        </StyledTableCell>
         <StyledTableCell className="cell-amount text-center">
           ${(inv.total_amount || 0).toFixed(2)}
         </StyledTableCell>
         <StyledTableCell className="cell-commission text-center">
           ${(inv.commission_amount || 0).toFixed(2)}
+        </StyledTableCell>
+        <StyledTableCell className="cell-penalty text-center">
+          <TextField
+            value={inv.penalty_amount || 0}
+            onChange={(e) => handlePenaltyChange(inv.id, e.target.value)}
+            type="number"
+            size="small"
+            inputProps={{
+              min: 0,
+              step: 0.01,
+              style: {
+                padding: "2px 4px",
+                fontSize: "0.65rem",
+                textAlign: "center",
+                width: "80px",
+              },
+            }}
+          />
         </StyledTableCell>
         <StyledTableCell className="cell-status text-center">
           <StatusSelect
@@ -220,12 +254,48 @@ function CommissionsSummary() {
         </StyledTableCell>
       </TableRow>
     ),
-    [handleStatusChange, t]
+    [handleStatusChange, handlePenaltyChange, t]
   );
+
+  // Add a helper function to get available statuses
+  const getAvailableStatuses = useMemo(() => {
+    if (!invoices) return [];
+
+    const statusSet = new Set();
+    invoices.forEach((inv) => {
+      const status = (inv.estatus || inv.status)?.toLowerCase();
+      if (status) statusSet.add(status);
+    });
+
+    return Array.from(statusSet);
+  }, [invoices]);
+
+  // Update the showNotification helper
+  const showNotification = useCallback((message, severity = "info") => {
+    setNotification({
+      open: true,
+      message,
+      severity,
+    });
+  }, []);
+
+  // Add handleCloseNotification
+  const handleCloseNotification = useCallback(() => {
+    setNotification((prev) => ({ ...prev, open: false }));
+  }, []);
+
+  // Update error effect
+  useEffect(() => {
+    if (fetchError) {
+      showNotification(t("errorLoadingCommissions"), "error");
+    }
+  }, [fetchError, showNotification, t]);
 
   return (
     <Layout>
-      <PageTitle variant="h5">{t("commissionsTitle")}</PageTitle>
+      {isSmallScreen && (
+        <PageTitle variant="h5">{t("commissionsTitle")}</PageTitle>
+      )}
 
       <CommissionsFilters
         year={selectedDate.year}
@@ -233,120 +303,79 @@ function CommissionsSummary() {
         filters={filters}
         onFilterChange={updateFilter}
         onDateChange={handleDateChange}
+        availableStatuses={getAvailableStatuses}
         t={t}
       />
 
-      {fetchError && (
-        <StyledAlert severity="error">
-          {t("errorLoadingCommissions")}
-        </StyledAlert>
-      )}
-
-      {isLoading && (
-        <StyledAlert severity="info">{t("loadingCommissions")}</StyledAlert>
-      )}
-
       <ContentWrapper>
-        {!isLoading && !fetchError && (!invoices || invoices.length === 0) && (
-          <StyledAlert severity="info">
-            {t("noCommissionsFound", {
-              month: selectedDate.month,
-              year: selectedDate.year,
-            })}
-          </StyledAlert>
-        )}
-
-        {invoices && invoices.length > 0 && (
+        {isLoading ? (
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              py: 3,
+            }}
+          >
+            <CircularProgress size={20} />
+          </Box>
+        ) : (
           <>
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <StyledTableCell className="header text-center cell-id">
-                      {t("invoiceId")} (DB)
-                    </StyledTableCell>
-                    <StyledTableCell className="header text-center cell-doc">
-                      {t("billingDocument")}
-                    </StyledTableCell>
-                    <StyledTableCell className="header text-center cell-actions">
-                      {t("actions")}
-                    </StyledTableCell>
-                    <StyledTableCell className="header text-center cell-amount">
-                      {t("totalAmount")}
-                    </StyledTableCell>
-                    <StyledTableCell className="header text-center cell-commission">
-                      {t("totalCommission")}
-                    </StyledTableCell>
-                    <StyledTableCell className="header cell-status text-center">
-                      {t("currentStatus")}
-                    </StyledTableCell>
-                  </TableRow>
-                </TableHead>
-              </Table>
-            </TableContainer>
+            {!fetchError &&
+              (!filteredInvoices || filteredInvoices.length === 0) && (
+                <StyledAlert severity="info">
+                  {filters.status || filters.seller
+                    ? t("noMatchingResults")
+                    : t("noCommissionsFound", {
+                        month: selectedDate.month,
+                        year: selectedDate.year,
+                      })}
+                </StyledAlert>
+              )}
 
-            {displayedInvoices.map((inv) => (
-              <StyledAccordion
-                key={inv.id}
-                expanded={expandedRow === inv.id}
-                onChange={() =>
-                  setExpandedRow(expandedRow === inv.id ? null : inv.id)
-                }
-              >
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <TableContainer>
-                    <Table size="small">
-                      <TableBody>{renderInvoiceRow(inv)}</TableBody>
-                    </Table>
-                  </TableContainer>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <ArticleDetails articles={inv.items} t={t} />
-                </AccordionDetails>
-              </StyledAccordion>
-            ))}
+            {filteredInvoices && filteredInvoices.length > 0 && (
+              <>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHeader t={t} />
+                  </Table>
+                </TableContainer>
+
+                {displayedInvoices.map((inv) => (
+                  <InvoiceAccordion
+                    key={inv.id}
+                    inv={inv}
+                    expanded={expandedRow === inv.id}
+                    onExpand={() =>
+                      setExpandedRow(expandedRow === inv.id ? null : inv.id)
+                    }
+                    onStatusChange={handleStatusChange}
+                    onPenaltyChange={handlePenaltyChange}
+                    t={t}
+                  />
+                ))}
+              </>
+            )}
           </>
         )}
       </ContentWrapper>
 
-      <BottomActionsContainer>
-        <PaginationWrapper>
-          <Pagination
-            count={pageCount}
-            page={page}
-            onChange={(e, val) => setPage(val)}
-            color="primary"
-            size="small"
-          />
-        </PaginationWrapper>
+      <BottomActions
+        pageCount={pageCount}
+        page={page}
+        onPageChange={(e, val) => setPage(val)}
+        onSave={handleSaveChanges}
+        onGenerateCut={handleGenerateCut}
+        isSaving={isSaving}
+        isGeneratingCut={isGeneratingCut}
+        t={t}
+      />
 
-        <ActionButtonsWrapper>
-          <Button
-            variant="contained"
-            onClick={handleSaveChanges}
-            disabled={isSaving || isGeneratingCut}
-            sx={buttonStyles}
-          >
-            {t("saveChanges")}
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleGenerateCut}
-            disabled={isSaving || isGeneratingCut}
-            sx={buttonStyles}
-          >
-            {t("generateMonthlyCut")}
-          </Button>
-        </ActionButtonsWrapper>
-      </BottomActionsContainer>
-
-      <AlertModal
-        open={alertModal.open}
-        onClose={() => setAlertModal({ open: false })}
-        title={alertModal.title}
-        message={alertModal.message}
-        severity={alertModal.severity}
-        onConfirm={alertModal.onConfirm}
+      <Notification
+        open={notification.open}
+        message={notification.message}
+        severity={notification.severity}
+        onClose={handleCloseNotification}
       />
     </Layout>
   );

@@ -14,7 +14,7 @@ import {
   StyledDivider,
   CompactTable,
   StyledTableCell,
-} from "./styles/CommissionsStyles";
+} from "../styles/CommissionsStyles";
 import { styled } from "@mui/material/styles";
 
 /**
