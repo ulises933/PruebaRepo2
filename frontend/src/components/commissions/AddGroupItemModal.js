@@ -121,10 +121,10 @@ const AddGroupItemModal = ({ open, onClose, onAdd, t, customerPriceGroup }) => {
     if (!selectedLevel1 && !selectedLevel2) return;
 
     onAdd({
-      group1: selectedLevel1?.id || "",
-      group1_description: selectedLevel1?.name || "",
-      group2: selectedLevel2?.id || "",
-      group2_description: selectedLevel2?.name || "",
+      group1: selectedLevel1?.code || "",
+      group1_description: selectedLevel1?.desc || "",
+      group2: selectedLevel2?.code || "",
+      group2_description: selectedLevel2?.desc || "",
       commission_percent: commission,
       customer_price_group: customerPriceGroup,
     });
@@ -154,7 +154,7 @@ const AddGroupItemModal = ({ open, onClose, onAdd, t, customerPriceGroup }) => {
               value={selectedLevel1}
               onChange={handleLevel1Change}
               options={level1Groups}
-              getOptionLabel={(option) => option.name}
+              getOptionLabel={(option) => `${option.desc} (${option.code})`}
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -164,7 +164,7 @@ const AddGroupItemModal = ({ open, onClose, onAdd, t, customerPriceGroup }) => {
               )}
               renderOption={(props, option) => (
                 <li {...props} style={{ fontSize: "0.875rem" }}>
-                  {option.name}
+                  {`${option.desc} (${option.code})`}
                 </li>
               )}
               isOptionEqualToValue={(option, value) => option.id === value?.id}
@@ -178,7 +178,7 @@ const AddGroupItemModal = ({ open, onClose, onAdd, t, customerPriceGroup }) => {
               value={selectedLevel2}
               onChange={handleLevel2Change}
               options={level2Groups}
-              getOptionLabel={(option) => option.name}
+              getOptionLabel={(option) => `${option.desc} (${option.code})`}
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -188,7 +188,7 @@ const AddGroupItemModal = ({ open, onClose, onAdd, t, customerPriceGroup }) => {
               )}
               renderOption={(props, option) => (
                 <li {...props} style={{ fontSize: "0.875rem" }}>
-                  {option.name}
+                  {`${option.desc} (${option.code})`}
                 </li>
               )}
               isOptionEqualToValue={(option, value) => option.id === value?.id}

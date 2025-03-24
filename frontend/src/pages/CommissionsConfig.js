@@ -210,10 +210,7 @@ function CommissionsConfig() {
       if (filter === "Item") {
         try {
           setIsLoading(true);
-          const itemGroupsData = await commissionConfigService.getItemGroups(
-            2,
-            customerPriceGroup
-          );
+          const itemGroupsData = await commissionConfigService.getItemConfigs(customerPriceGroup);
           setItemGroups(itemGroupsData);
         } catch (err) {
           showNotification(err.message || t("error"), "error");
@@ -322,14 +319,11 @@ function CommissionsConfig() {
   /**
    * Adds a new item group configuration
    */
-  const handleAddItemGroup = async () => {
+  const handleAddItemGroup = async (itemData) => {
     try {
       const newItem = {
-        ...newItemData,
+        ...itemData,
         customer_price_group: customerPriceGroup,
-        commission_percent: Number(newItemData.commission_percent || 0).toFixed(
-          2
-        ),
       };
 
       const response = await commissionConfigService.createItemConfig(
@@ -645,6 +639,7 @@ function CommissionsConfig() {
         onAdd={handleAddItemGroup}
         itemData={newItemData}
         onItemDataChange={setNewItemData}
+        customerPriceGroup={customerPriceGroup}
         t={t}
       />
 
