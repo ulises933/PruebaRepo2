@@ -1,6 +1,6 @@
 import React from "react";
 import { Select, MenuItem } from "@mui/material";
-import { StyledFormControl } from "./styles/CommissionsStyles";
+import { StyledFormControl } from "../styles/CommissionsStyles";
 
 /**
  * StatusSelect Component

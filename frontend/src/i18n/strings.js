@@ -113,6 +113,12 @@ export const strings = {
     level2_description: "Level 2 Description",
     error_adding_item: "Error adding item",
     item_added_successfully: "Item added successfully",
+    success: "Success",
+    noBillingCycle: "No billing cycle has been created yet",
+    billingCycleClosed: "Billing cycle closed successfully",
+    billingCycleAlreadyClosed: "This billing cycle has already been closed",
+    errorClosingBillingCycle: "Error closing billing cycle",
+    noMatchingResults: "No results match the current filters",
   },
   es: {
     // Common
@@ -224,5 +230,12 @@ export const strings = {
     level2_description: "Descripción Nivel 2",
     error_adding_item: "Error al agregar artículo",
     item_added_successfully: "Artículo agregado exitosamente",
+    success: "Success",
+    noBillingCycle: "No billing cycle has been created yet",
+    billingCycleClosed: "Billing cycle closed successfully",
+    billingCycleAlreadyClosed: "This billing cycle has already been closed",
+    errorClosingBillingCycle: "Error closing billing cycle",
+    noMatchingResults:
+      "No hay resultados que coincidan con los filtros actuales",
   },
 };

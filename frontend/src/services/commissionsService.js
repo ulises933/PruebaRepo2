@@ -85,19 +85,16 @@ export async function getCommissionsByPartner(
  *
  * The request body expects:
  * {
- *   "facturas_modificadas": [
- *     { "id": number, "estatus": "pagable|no pagable|pendiente", "id_corte": number }
+ *   "modified_billing_docs": [
+ *     { "id": number, "status": "payable|not payable|pending", "monthly_cut_id": number }
  *   ],
- *   "usuario_modificador": string
+ *   "user_mod": string
  * }
  */
-export async function saveInvoiceStatuses(
-  facturas,
-  usuarioModificador = "system_user"
-) {
+export async function saveInvoiceStatuses(billingDocs, userMod) {
   const body = {
-    modified_billing_docs: facturas,
-    user_mod: usuarioModificador,
+    modified_billing_docs: billingDocs,
+    user_mod: userMod,
   };
 
   const response = await fetch(`${appConfig.apiBaseUrl}/guardar_cambios`, {
