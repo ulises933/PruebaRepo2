@@ -110,7 +110,7 @@ function CommissionsSummary() {
   const handleStatusChange = useCallback((id, newStatus) => {
     setInvoices((prev) =>
       prev.map((inv) =>
-        inv.id === id ? { ...inv, estatus: newStatus.toLowerCase() } : inv
+        inv.id === id ? { ...inv, status: newStatus.toLowerCase() } : inv
       )
     );
   }, []);
@@ -124,10 +124,11 @@ function CommissionsSummary() {
 
     try {
       setIsSaving(true);
-      const payload = invoices.map(({ id, estatus, id_corte }) => ({
+      const payload = invoices.map(({ id, status, penalty, monthly_cut_id }) => ({
         id,
-        estatus,
-        id_corte,
+        status,
+        penalty,
+        monthly_cut_id,
       }));
 
       await saveInvoiceStatuses(payload, user?.username || "system_user");
@@ -161,15 +162,14 @@ function CommissionsSummary() {
 
     try {
       setIsGeneratingCut(true);
-      await closeBillingCycle({
-        year: selectedDate.year,
-        month: selectedDate.month,
-        user: user?.username || "system_user",
-        personnel_number: "0",
-        customer_price_group: "",
-        language: "EN",
-      });
-
+      await closeBillingCycle(
+        selectedDate.year,
+        selectedDate.month,
+        user?.username || "system_user",
+        "0",
+        "08",
+        "EN"
+      );
       setAlertModal({
         open: true,
         title: "Success",
@@ -213,7 +213,7 @@ function CommissionsSummary() {
         </StyledTableCell>
         <StyledTableCell className="cell-status text-center">
           <StatusSelect
-            value={inv.estatus || inv.status}
+            value={inv.status}
             onChange={(e) => handleStatusChange(inv.id, e.target.value)}
             t={t}
           />

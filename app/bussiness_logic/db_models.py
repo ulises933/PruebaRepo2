@@ -16,6 +16,7 @@ class BillingDocumentTracking(Base):
     id = Column(Integer, primary_key=True, index=True)
     billing_document = Column(String, unique=True, index=True)
     personnel_number = Column(String, index=True)
+    partner_full_name = Column(String)
     status = Column(Enum(BillingDocumentStatus), default=BillingDocumentStatus.PAYABLE)
     last_modified_user = Column(String)
     last_modified_date = Column(DateTime, default=datetime.utcnow)
@@ -23,6 +24,8 @@ class BillingDocumentTracking(Base):
     items = Column(JSON)
     commission_amount = Column(Float, default=0.0)
     total_amount = Column(Float)
+    penalty_amount = Column(Float, default=0.0)
+    customer_price_group = Column(String, nullable=False, index=True)
     monthly_cut_id = Column(Integer, ForeignKey('monthly_cut.id'))  # Relación con MonthlyCut
     
     monthly_cut = relationship("MonthlyCut", back_populates="billing_documents")  # Relación inversa
@@ -32,13 +35,16 @@ class BillingDocumentTracking(Base):
             "id": self.id,
             "billing_document": self.billing_document,
             "personnel_number": self.personnel_number,
+            "partner_full_name": self.partner_full_name,
             "status": self.status.value,
             "last_modified_user": self.last_modified_user,
             "last_modified_date": self.last_modified_date.isoformat() if self.last_modified_date else None,
             "commission_detail": self.commission_detail,
             "items": self.items,
             "commission_amount": self.commission_amount,
+            "customer_price_group": self.customer_price_group,
             "total_amount": self.total_amount,
+            "penalty_amount": self.penalty_amount,
             "monthly_cut_id": self.monthly_cut_id,
         }
 

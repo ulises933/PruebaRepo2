@@ -40,6 +40,7 @@ def serialize_list(items):
 class BillingDocument(BaseModel):
     id: int
     status: BillingDocumentStatus
+    penalty_amount: float
     monthly_cut_id: int
 
 class BillingDocumentRequest(BaseModel):
@@ -93,10 +94,10 @@ async def guardar_cambios(
 @business_logic_router.get("/comission_summary")
 async def comission_summary(
     request:Request,
-    year: int = 2024,
-    month: int = 12,
+    year: int = 2025,
+    month: int = 3,
     personnel_number: str = "0",
-    customer_price_group: str = "",
+    customer_price_group: str = "08",
     language: str ="EN",
     commissions_service: CommissionsService = Depends(get_comisiones_service)
 ):
@@ -115,6 +116,32 @@ async def comission_summary(
         status_code = 500
     
     return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
+
+
+@business_logic_router.get("/commissions_by_partner")
+async def commissions_by_partner(
+    request:Request,
+    year: int = 2025,
+    month: int = 3,
+    customer_price_group: str = "08",
+    commissions_service: CommissionsService = Depends(get_comisiones_service)
+):
+    try :
+        totals = await commissions_service.get_commissions_by_partner(year, month, customer_price_group)
+        response_content = {
+            "returnData": totals,
+            "displayMessage": "Commission totals successfully retrieved."
+        }
+        status_code = 200
+    except Exception as e:
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to list commission totals."
+        }
+        status_code = 500
+    
+    return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
+
 
 class ClosingCycleData(BaseModel):
     year: int
