@@ -26,14 +26,14 @@ class BillingDocumentTrackingService:
         #TODO: decidir si se muestran solo billing_documents pagables en periodos pasados
         return self.db.query(BillingDocumentTracking).filter_by(monthly_cut_id=monthly_cut_id).all()
 
-    def update_billing_document_status(self, id: int, status: BillingDocumentStatus, penalty: float, user: str) -> BillingDocumentTracking:
+    def update_billing_document_status(self, id: int, status: BillingDocumentStatus, penalty_amount: float, user: str) -> BillingDocumentTracking:
         billing_doc = self.db.query(BillingDocumentTracking).get(id)
 
         if not billing_doc:
             raise BillingDocumentDoesNotExistError(id)
         else:
             billing_doc.status = status
-            billing_doc.penalty = penalty
+            billing_doc.penalty_amount = penalty_amount
             billing_doc.last_modified_user = user
             billing_doc.last_modified_date = datetime.now(UTC)
             billing_doc.commission_detail = "status updated successfully"
@@ -104,7 +104,7 @@ class BillingDocumentTrackingService:
                 items, 
                 personnel_number, 
                 customer_price_group, 
-                penalty
+                penalty_amount
             FROM 
                 billing_document_tracking
             WHERE 
@@ -181,7 +181,7 @@ class BillingDocumentTrackingService:
         SET 
             items = c.updated_items,
             commission_amount = c.total_commission,
-            --total_amount = c.total_commission - penalty,
+            --total_amount = c.total_commission - penalty_amount,
             last_modified_date = CURRENT_TIMESTAMP,
             last_modified_user = :user
         FROM 
@@ -218,7 +218,7 @@ class BillingDocumentTrackingService:
             BillingDocumentTracking.personnel_number,
             BillingDocumentTracking.partner_full_name,
             func.sum(BillingDocumentTracking.commission_amount).label('total_commission'),
-            func.sum(BillingDocumentTracking.penalty).label('total_penalty')
+            func.sum(BillingDocumentTracking.penalty_amount).label('total_penalty')
         ).filter(
             BillingDocumentTracking.monthly_cut_id == monthly_cut_id,
             BillingDocumentTracking.customer_price_group == customer_price_group,

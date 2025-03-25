@@ -40,7 +40,7 @@ def serialize_list(items):
 class BillingDocument(BaseModel):
     id: int
     status: BillingDocumentStatus
-    penalty: float
+    penalty_amount: float
     monthly_cut_id: int
 
 class BillingDocumentRequest(BaseModel):

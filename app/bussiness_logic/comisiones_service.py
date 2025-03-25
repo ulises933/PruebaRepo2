@@ -45,7 +45,7 @@ class CommissionsService:
             self.billing_doc_tracking_service.update_billing_document_status(
                 billing_doc.id,
                 billing_doc.status,
-                billing_doc.penalty,
+                billing_doc.penalty_amount,
                 user
             )
 

@@ -24,7 +24,7 @@ class BillingDocumentTracking(Base):
     items = Column(JSON)
     commission_amount = Column(Float, default=0.0)
     total_amount = Column(Float)
-    penalty = Column(Float, default=0.0)
+    penalty_amount = Column(Float, default=0.0)
     customer_price_group = Column(String, nullable=False, index=True)
     monthly_cut_id = Column(Integer, ForeignKey('monthly_cut.id'))  # Relación con MonthlyCut
     
@@ -44,7 +44,7 @@ class BillingDocumentTracking(Base):
             "commission_amount": self.commission_amount,
             "customer_price_group": self.customer_price_group,
             "total_amount": self.total_amount,
-            "penalty": self.penalty,
+            "penalty_amount": self.penalty_amount,
             "monthly_cut_id": self.monthly_cut_id,
         }
 
