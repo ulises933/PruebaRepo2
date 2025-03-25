@@ -65,18 +65,17 @@ export const ArticleDetails = ({ articles, t }) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {articles.map((art) =>
-              Object.entries(art).map(([code, details]) => (
-                <TableRow key={code} hover>
-                  <TableCell align="center">{code}</TableCell>
+            {articles.map(({material, price = null, commission_amount = null}) => (
+                <TableRow key={material} hover>
+                  <TableCell align="center">{material}</TableCell>
                   <TableCell align="center">
-                    ${details?.importe?.toFixed(2) ?? "N/A"}
+                    ${price?.toFixed(2) ?? "N/A"}
                   </TableCell>
                   <TableCell align="center">
-                    ${details?.comision?.toFixed(2) ?? "N/A"}
+                    ${commission_amount?.toFixed(2) ?? "N/A"}
                   </TableCell>
                 </TableRow>
-              ))
+              )
             )}
           </TableBody>
         </CompactTable>

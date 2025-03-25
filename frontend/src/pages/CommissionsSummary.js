@@ -132,7 +132,7 @@ function CommissionsSummary() {
   const handleStatusChange = useCallback((id, newStatus) => {
     setInvoices((prev) =>
       prev.map((inv) =>
-        inv.id === id ? { ...inv, estatus: newStatus.toLowerCase() } : inv
+        inv.id === id ? { ...inv, status: newStatus.toLowerCase() } : inv
       )
     );
   }, []);
@@ -159,10 +159,11 @@ function CommissionsSummary() {
 
     try {
       setIsSaving(true);
-      const payload = invoices.map(({ id, status, monthly_cut_id }) => ({
+      const payload = invoices.map(({ id, status, penalty_amount, monthly_cut_id }) => ({
         id,
         status: status?.toLowerCase() || "pending",
         monthly_cut_id: monthly_cut_id || 0,
+        penalty_amount,
       }));
 
       await saveInvoiceStatuses(payload, ssoUser?.username);
@@ -188,14 +189,14 @@ function CommissionsSummary() {
 
     try {
       setIsGeneratingCut(true);
-      await closeBillingCycle({
-        year: selectedDate.year,
-        month: selectedDate.month,
-        user: ssoUser?.username,
-        personnel_number: "0",
-        customer_price_group: "",
-        language: "EN",
-      });
+      await closeBillingCycle(
+        selectedDate.year,
+        selectedDate.month,
+        ssoUser?.username || "system_user",
+        "0",
+        "08",
+        "EN"
+      );
 
       showNotification(t("billingCycleClosed"), "success");
       navigate(`/monthly-cut/${selectedDate.year}/${selectedDate.month}`);
@@ -247,7 +248,7 @@ function CommissionsSummary() {
         </StyledTableCell>
         <StyledTableCell className="cell-status text-center">
           <StatusSelect
-            value={inv.estatus || inv.status}
+            value={inv.status}
             onChange={(e) => handleStatusChange(inv.id, e.target.value)}
             t={t}
           />
