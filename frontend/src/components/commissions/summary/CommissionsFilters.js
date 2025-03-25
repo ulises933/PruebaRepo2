@@ -23,7 +23,7 @@ import {
   StyledAccordion,
   FilterBox,
   fieldWidths,
-} from "./styles/CommissionsStyles";
+} from "../styles/CommissionsStyles";
 
 /**
  * CommissionsFilters Component
@@ -45,6 +45,7 @@ export const CommissionsFilters = ({
   filters,
   onFilterChange,
   onDateChange,
+  availableStatuses,
   t,
 }) => {
   /**
@@ -188,9 +189,11 @@ export const CommissionsFilters = ({
                   }
                 >
                   <MenuItem value="">{t("all")}</MenuItem>
-                  <MenuItem value="pagable">{t("payable")}</MenuItem>
-                  <MenuItem value="no pagable">{t("notPayable")}</MenuItem>
-                  <MenuItem value="pendiente">{t("pending")}</MenuItem>
+                  {availableStatuses.map((status) => (
+                    <MenuItem key={status} value={status}>
+                      {t(status.toLowerCase().replace(" ", ""))}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Box>

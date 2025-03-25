@@ -200,6 +200,21 @@ export const StyledTableCell = styled(TableCell)(({ theme }) => ({
   "&.cell-material-code": {
     width: "180px",
   },
+  "&.cell-penalty": {
+    width: "140px",
+    "& .MuiInputBase-root": {
+      height: "24px",
+      backgroundColor: theme.palette.background.paper,
+    },
+    "& .MuiOutlinedInput-root": {
+      "&:hover .MuiOutlinedInput-notchedOutline": {
+        borderColor: theme.palette.primary.light,
+      },
+      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+        borderColor: theme.palette.primary.main,
+      },
+    },
+  },
   "& .MuiSelect-select": {
     fontSize: "0.65rem",
     minHeight: "unset !important",
@@ -231,14 +246,17 @@ export const BottomActionsContainer = styled(Box)(({ theme }) => ({
   padding: theme.spacing(1.5),
   zIndex: theme.zIndex.appBar,
   display: "flex",
-  flexDirection: "column",
-  gap: theme.spacing(1),
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
 }));
 
 // Pagination styles
 export const PaginationWrapper = styled(Box)(({ theme }) => ({
   display: "flex",
   justifyContent: "center",
+  alignItems: "center",
+  flex: 1,
   "& .MuiPagination-ul": {
     fontSize: "0.75rem",
   },
@@ -247,12 +265,21 @@ export const PaginationWrapper = styled(Box)(({ theme }) => ({
 // Action buttons styles
 export const ActionButtonsWrapper = styled(Box)(({ theme }) => ({
   display: "flex",
-  justifyContent: "space-between",
   gap: theme.spacing(2),
+  marginLeft: "auto",
   "& .MuiButton-root": {
     padding: theme.spacing(0.5, 1.5),
     fontSize: "0.75rem",
     minWidth: "120px",
+    position: "relative",
+    "& .MuiCircularProgress-root": {
+      position: "absolute",
+      top: "50%",
+      left: "50%",
+      marginTop: "-12px",
+      marginLeft: "-12px",
+      color: theme.palette.grey[500],
+    },
   },
 }));
 
