@@ -111,6 +111,24 @@ class PartnerCommissionConfiguration(Base):
             "last_modified_user": self.last_modified_user,
         }
 
+class ItemGroup(Base):
+    __tablename__ = 'item_group'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(String, nullable=False)
+    parent_code = Column(String, nullable=True)
+    hierarchy_level = Column(Integer, nullable=False)
+    description = Column(String, nullable=False)
+
+    def serialize(self):
+        return {
+            "id":self.id,
+            "code":self.code,
+            "parent_code":self.parent_code,
+            "hierarchy_level":self.hierarchy_level,
+            "description":self.description,
+        }
+
 class ItemCommissionConfiguration(Base):
     __tablename__ = 'item_commission_configuration'
 

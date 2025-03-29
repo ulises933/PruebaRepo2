@@ -1,6 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy import text
 import os
+from app.bussiness_logic.initial_data import initial_inserts
 
 DB_DIR = "data"
 if not os.path.exists(DB_DIR):
@@ -23,3 +25,13 @@ def get_db():
         yield db
     finally:
         db.close() 
+
+def seed_initial_data():
+    db = SessionLocal()
+    try:
+        for insert_stmt in initial_inserts:
+            db.execute(text(insert_stmt))
+            db.commit()
+    finally:
+        db.close()
+

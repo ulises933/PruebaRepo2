@@ -63,6 +63,7 @@ const AddGroupItemModal = ({ open, onClose, onAdd, t, customerPriceGroup }) => {
       try {
         const groups = await commissionConfigService.getItemGroups(
           2,
+          selectedLevel1.code,
           customerPriceGroup
         );
         setLevel2Groups(groups);
@@ -71,7 +72,7 @@ const AddGroupItemModal = ({ open, onClose, onAdd, t, customerPriceGroup }) => {
       }
     };
     fetchLevel2Groups();
-  }, [customerPriceGroup]);
+  }, [selectedLevel1, customerPriceGroup]);
 
   // Fetch items when level 1 or level 2 selection changes
   useEffect(() => {
@@ -154,7 +155,7 @@ const AddGroupItemModal = ({ open, onClose, onAdd, t, customerPriceGroup }) => {
               value={selectedLevel1}
               onChange={handleLevel1Change}
               options={level1Groups}
-              getOptionLabel={(option) => `${option.desc} (${option.code})`}
+              getOptionLabel={(option) => `${option.description} (${option.code})`}
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -164,7 +165,7 @@ const AddGroupItemModal = ({ open, onClose, onAdd, t, customerPriceGroup }) => {
               )}
               renderOption={(props, option) => (
                 <li {...props} style={{ fontSize: "0.875rem" }}>
-                  {`${option.desc} (${option.code})`}
+                  {`${option.description} (${option.code})`}
                 </li>
               )}
               isOptionEqualToValue={(option, value) => option.id === value?.id}
@@ -178,7 +179,7 @@ const AddGroupItemModal = ({ open, onClose, onAdd, t, customerPriceGroup }) => {
               value={selectedLevel2}
               onChange={handleLevel2Change}
               options={level2Groups}
-              getOptionLabel={(option) => `${option.desc} (${option.code})`}
+              getOptionLabel={(option) => `${option.description} (${option.code})`}
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -188,7 +189,7 @@ const AddGroupItemModal = ({ open, onClose, onAdd, t, customerPriceGroup }) => {
               )}
               renderOption={(props, option) => (
                 <li {...props} style={{ fontSize: "0.875rem" }}>
-                  {`${option.desc} (${option.code})`}
+                  {`${option.description} (${option.code})`}
                 </li>
               )}
               isOptionEqualToValue={(option, value) => option.id === value?.id}

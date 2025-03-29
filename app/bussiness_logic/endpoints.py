@@ -336,12 +336,13 @@ async def get_partner_configurations(request: Request, customer_price_group: str
 
 
 @business_logic_router.get("/item_groups")
-async def get_item_groups(request: Request, level:int, customer_price_group: Optional[str] = None, item_catalog_service: ItemCatalogService = Depends(get_item_catalog_service)):
+async def get_item_groups(request: Request, level:int, parent_code: Optional[str]=None, customer_price_group: Optional[str] = None, item_catalog_service: ItemCatalogService = Depends(get_item_catalog_service)):
     """
     Lists all the item groups of the specified level in the product hierarchy for a specific customer price group.
 
     Parameters:
         level (int): The level of the item groups to retrieve (1 or 2).
+        parent_code (Optional[str]): If level is 2, only groups of level 2 asociated with the specified parent group of level 1 will be returned. If omitted, all groups of level 2 will be returned.
         customer_price_group (Optional[str]): The identifier for the customer price group to filter the item groups (default is None).
 
     Returns:
@@ -350,20 +351,25 @@ async def get_item_groups(request: Request, level:int, customer_price_group: Opt
     Usage:
         This function is used to retrieve item groups based on their hierarchy level and customer price group to be presented as selectable options within a dropdown in the frontend.
     """
-    level_selector = {
-        1: item_catalog_service.get_item_groups_1,
-        2: item_catalog_service.get_item_groups_2,
-    }
+    #level_selector = {
+    #    1: item_catalog_service.get_item_groups_1,
+    #    2: item_catalog_service.get_item_groups_2,
+    #}
+    #try:
+    #    if level not in level_selector:
+    #        response_content = {
+    #            "errorMessage": "Bad request",
+    #            "displayMessage": f"level should be one of the following: {list(level_selector.keys())}"
+    #        }
+    #        status_code = 403
+    #    else:
+    #        response_content = await level_selector[level](customer_price_group)
+    #        status_code = 200
     try:
-        if level not in level_selector:
-            response_content = {
-                "errorMessage": "Bad request",
-                "displayMessage": f"level should be one of the following: {list(level_selector.keys())}"
-            }
-            status_code = 403
-        else:
-            response_content = await level_selector[level](customer_price_group)
-            status_code = 200
+        item_groups = item_catalog_service.get_item_groups(level, parent_code)
+        serialized_items = serialize_list(item_groups)
+        response_content = serialized_items
+        status_code = 200
     except Exception as e:
         response_content = {
             "errorMessage": str(e),

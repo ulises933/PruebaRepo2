@@ -9,10 +9,15 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from app.bussiness_logic.endpoints import business_logic_router
 from app.exception import exception_handler, DoesNotExist, does_not_exist_handler
 from app.env_variables import LOGGING_NAME
-from app.database import engine
+from sqlalchemy.orm import Session
+from app.database import engine, seed_initial_data
 from app.bussiness_logic.db_models import Base
 
+# Create all tables if they don't exist
 Base.metadata.create_all(bind=engine)
+
+# Seed initial data
+seed_initial_data()
 
 #Add handling error
 try:

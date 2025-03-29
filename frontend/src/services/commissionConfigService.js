@@ -97,8 +97,8 @@ export async function getPartnerConfigs(customerPriceGroup) {
  * @param {string} [customerPriceGroup] - Optional customer price group filter
  * @returns {Promise<Array>} List of item groups
  */
-export async function getItemGroups(level, customerPriceGroup = "") {
-  const params = new URLSearchParams({ level: level });
+export async function getItemGroups(level, parent_code = null, customerPriceGroup = "") {
+  const params = new URLSearchParams({ level: level, parent_code: parent_code });
   if (customerPriceGroup) {
     params.append("customer_price_group", customerPriceGroup);
   }

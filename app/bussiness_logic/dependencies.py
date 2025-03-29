@@ -41,9 +41,10 @@ def get_partner_catalog_service(
     return PartnerCatalogService(sap_api_service)
 
 def get_item_catalog_service(
+    db: Session = Depends(get_db),
     sap_api_service: SAPApiService = Depends(get_sap_api_service)
 ) -> ItemCatalogService:
-    return ItemCatalogService(sap_api_service)
+    return ItemCatalogService(db, sap_api_service)
 
 def get_billing_doc_tracking_service(
     db: Session = Depends(get_db),
