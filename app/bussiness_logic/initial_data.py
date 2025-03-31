@@ -1,4 +1,10 @@
 initial_inserts = [
+    #Managers
+    """
+    INSERT OR IGNORE INTO manager (full_name,payroll_number,personnel_number,company_code)
+    VALUES
+    ('TEST', '0','0','0')
+    """,
     #Item Groups
     """
     INSERT OR IGNORE INTO item_group (code, parent_code, hierarchy_level, description)

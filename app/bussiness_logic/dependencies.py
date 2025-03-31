@@ -36,9 +36,10 @@ def get_item_commission_configuration_service(
     return ItemCommissionConfigurationService(db)
 
 def get_partner_catalog_service(
+    db:Session = Depends(get_db),
     sap_api_service: SAPApiService = Depends(get_sap_api_service)
 ) -> PartnerCatalogService:
-    return PartnerCatalogService(sap_api_service)
+    return PartnerCatalogService(db, sap_api_service)
 
 def get_item_catalog_service(
     db: Session = Depends(get_db),

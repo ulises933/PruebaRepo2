@@ -12,7 +12,7 @@ from app.bussiness_logic.dependencies import get_billing_doc_tracking_service, g
     get_partner_commission_configuration_service, get_item_commission_configuration_service
 from app.bussiness_logic.dependencies import get_user_info_service
 from app.bussiness_logic.factura_tracking_service import BillingDocumentTrackingService
-from app.bussiness_logic.partner_catalog_service import PartnerCatalogService
+from app.bussiness_logic.partner_catalog_service import PartnerCatalogService, PartnerData
 from app.bussiness_logic.partner_commission_configuration_service import PartnerCommissionConfigurationService, \
     PartnerConfiguration, PartnerConfigurationUpdate
 from app.bussiness_logic.item_catalog_service import ItemCatalogService
@@ -213,10 +213,88 @@ async def validate_sso_token(
         status_code = 500
 
     return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
+@business_logic_router.get("/manager")
+def get_manager(request: Request, payroll_number: str, partner_catalog_service: PartnerCatalogService = Depends(get_partner_catalog_service)):
+    """
+    Returns a specific manager for a given payroll_number.
+
+    Parameters:
+        payroll_number: The payroll number to identifiy a manager.
+
+    Returns:
+        Dict[str,str]: A manager record.
+
+    Usage:
+        This function is used to retrieve a manager's data.
+    """
+    try:
+        manager = partner_catalog_service.get_manager(payroll_number)
+        response_content = manager.serialize() if manager is not None else None
+        status_code = 200
+    except Exception as e:
+        logging.exception(e)
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to retrieve manager data."
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content= response_content, request=request, status_code=status_code)
+
+@business_logic_router.post("/partner")
+def create_partner(request:Request, partner: PartnerData, user_mod: str, partner_catalog_service:PartnerCatalogService=Depends(get_partner_catalog_service)):
+    """
+    Creates a new partner record.
+
+    Parameters:
+        partner (PartnerData): An object containing the details for the new partner.
+        user_mod (str): The identifier of the user making the creation.
+
+    Returns:
+        Partner: The newly created partner object.
+    """
+    
+    try:
+        created_partner = partner_catalog_service.create_partner(partner, user_mod)
+        response_content = created_partner.serialize()
+        status_code = 200
+    except Exception as e:
+        logging.exception(e)
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to create a partner."
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
+
+@business_logic_router.patch("/partner")
+def update_partner(request:Request, partner: PartnerData, user_mod: str, partner_catalog_service:PartnerCatalogService=Depends(get_partner_catalog_service)):
+    """
+    Updates an existing partner record.
+
+    Parameters:
+        partner (PartnerData): An object containing the details for updating the existing partner, including the existing partner's ID.
+        user_mod (str): The identifier of the user making the update.
+
+    Returns:
+        Partner: The updated partner object.
+    """
+    
+    try:
+        updated_partner = partner_catalog_service.update_partner(partner, user_mod)
+        response_content = updated_partner.serialize()
+        status_code = 200
+    except Exception as e:
+        logging.exception(e)
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to create a partner."
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
 
 
 @business_logic_router.get("/partners")
-async def get_partners(request: Request, customer_price_group: Optional[str] = None, partner_catalog_service: PartnerCatalogService = Depends(get_partner_catalog_service)):
+def get_partners(request: Request, company_code: str, partner_catalog_service: PartnerCatalogService = Depends(get_partner_catalog_service)):
     """
     Lists all the partners for a specific customer price group.
 
@@ -230,8 +308,8 @@ async def get_partners(request: Request, customer_price_group: Optional[str] = N
         This function is used to retrieve partner data from the selected customer price group to be presented as selectable options within a dropdown in the frontend.
     """
     try:
-        partners = await partner_catalog_service.get_partners(customer_price_group)
-        response_content = partners
+        partners = partner_catalog_service.get_partners(company_code)
+        response_content = serialize_list(partners)
         status_code = 200
     except Exception as e:
         logging.exception(e)
