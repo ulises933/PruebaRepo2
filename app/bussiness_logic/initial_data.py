@@ -1,9 +1,9 @@
 initial_inserts = [
     #Managers
     """
-    INSERT OR IGNORE INTO manager (full_name,payroll_number,personnel_number,company_code)
+    INSERT OR IGNORE INTO manager (full_name,email,payroll_number,personnel_number,company_code)
     VALUES
-    ('TEST', '0','0','0')
+    ('TEST', 'test@email.com','0','0','0')
     """,
     #Item Groups
     """

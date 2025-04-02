@@ -87,14 +87,16 @@ class Manager(Base):
     __tablename__ = 'manager'
     id = Column(Integer, primary_key=True, autoincrement=True)
     full_name = Column(String, nullable=False)
-    payroll_number = Column(String, unique=True, nullable=False)
-    personnel_number = Column(String, unique=True, nullable=False)
+    email = Column(String, unique=True, index=true)
+    payroll_number = Column(String, unique=True)
+    personnel_number = Column(String, unique=True)
     company_code = Column(String, nullable=False)
 
     def serialize(self):
         return {
             "id": self.id,
             "full_name": self.full_name,
+            "email": self.email,
             "payroll_number": self.payroll_number,
             "personnel_number": self.personnel_number,
             "company_code": self.company_code,
@@ -106,11 +108,12 @@ class Partner(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     id_manager = Column(String, ForeignKey('manager.id'), nullable=False, index=True)
     full_name = Column(String, nullable=False)
-    payroll_number = Column(String, nullable=False, unique=True, index=True)
-    personnel_number = Column(String, nullable=False, unique=True, index=True)
+    email = Column(String, unique=True, index=true)
+    payroll_number = Column(String, unique=True, index=True)
+    personnel_number = Column(String, unique=True, index=True)
     company_code = Column(String, nullable=False)
-    profit_center = Column(String, nullable=False)
-    cost_center = Column(String, nullable=False)
+    profit_center = Column(String)
+    cost_center = Column(String)
     date_created = Column(DateTime, default=datetime.utcnow)
     last_modified_date = Column(DateTime, default=datetime.utcnow)
     last_modified_user = Column(String)
@@ -120,6 +123,7 @@ class Partner(Base):
             "id": self.id,
             "id_manager": self.id_manager,
             "full_name": self.full_name,
+            "email": self.email,
             "payroll_number": self.payroll_number,
             "personnel_number": self.personnel_number,
             "company_code": self.company_code,
