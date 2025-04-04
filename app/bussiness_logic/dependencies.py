@@ -12,6 +12,7 @@ from .partner_commission_configuration_service import PartnerCommissionConfigura
 from .item_commission_configuration_service import ItemCommissionConfigurationService
 from .corte_mensual_service import MonthlyCutService
 from .comisiones_service import CommissionsService
+from .capturist_service import CapturistService
 
 def get_user_info_service() -> UserInfoService:
     return UserInfoService()
@@ -62,4 +63,7 @@ def get_comisiones_service(
     sap_api_service: SAPApiService = Depends(get_sap_api_service),
     sap_odata_service: SAPODataService = Depends(get_sap_odata_service)
 ) -> CommissionsService:
-    return CommissionsService(monthly_cut_service, billing_doc_tracking_service, sap_api_service, sap_odata_service) 
+    return CommissionsService(monthly_cut_service, billing_doc_tracking_service, sap_api_service, sap_odata_service)
+
+def get_capturist_service(db: Session = Depends(get_db)) -> CapturistService:
+    return CapturistService(db) 
