@@ -20,6 +20,8 @@ DB_DIR = "data"
 
 SAP_API_KEY = os.getenv('SAP_API_KEY')
 SAP_API_URL = os.getenv('SAP_API_URL')
+HIERARCHY_API_URL = os.getenv('HIERARCHY_API_URL')
+ITEM_API_URL = os.getenv('ITEM_API_URL')
 
 SAP_ODATA_URL = os.getenv('SAP_ODATA_URL')
 SAP_ODATA_CLIENT_ID = os.getenv('SAP_ODATA_CLIENT_ID')

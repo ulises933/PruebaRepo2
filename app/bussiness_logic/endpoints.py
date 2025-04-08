@@ -12,7 +12,7 @@ from app.bussiness_logic.dependencies import get_billing_doc_tracking_service, g
     get_partner_commission_configuration_service, get_item_commission_configuration_service
 from app.bussiness_logic.dependencies import get_user_info_service
 from app.bussiness_logic.factura_tracking_service import BillingDocumentTrackingService
-from app.bussiness_logic.partner_catalog_service import PartnerCatalogService
+from app.bussiness_logic.partner_catalog_service import PartnerCatalogService, PartnerData
 from app.bussiness_logic.partner_commission_configuration_service import PartnerCommissionConfigurationService, \
     PartnerConfiguration, PartnerConfigurationUpdate
 from app.bussiness_logic.item_catalog_service import ItemCatalogService
@@ -215,10 +215,88 @@ async def validate_sso_token(
         status_code = 500
 
     return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
+@business_logic_router.get("/manager")
+def get_manager(request: Request, payroll_number: str, partner_catalog_service: PartnerCatalogService = Depends(get_partner_catalog_service)):
+    """
+    Returns a specific manager for a given payroll_number.
+
+    Parameters:
+        payroll_number: The payroll number to identifiy a manager.
+
+    Returns:
+        Dict[str,str]: A manager record.
+
+    Usage:
+        This function is used to retrieve a manager's data.
+    """
+    try:
+        manager = partner_catalog_service.get_manager(payroll_number)
+        response_content = manager.serialize() if manager is not None else None
+        status_code = 200
+    except Exception as e:
+        logging.exception(e)
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to retrieve manager data."
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content= response_content, request=request, status_code=status_code)
+
+@business_logic_router.post("/partner")
+def create_partner(request:Request, partner: PartnerData, user_mod: str, partner_catalog_service:PartnerCatalogService=Depends(get_partner_catalog_service)):
+    """
+    Creates a new partner record.
+
+    Parameters:
+        partner (PartnerData): An object containing the details for the new partner.
+        user_mod (str): The identifier of the user making the creation.
+
+    Returns:
+        Partner: The newly created partner object.
+    """
+    
+    try:
+        created_partner = partner_catalog_service.create_partner(partner, user_mod)
+        response_content = created_partner.serialize()
+        status_code = 200
+    except Exception as e:
+        logging.exception(e)
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to create a partner."
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
+
+@business_logic_router.patch("/partner")
+def update_partner(request:Request, partner: PartnerData, user_mod: str, partner_catalog_service:PartnerCatalogService=Depends(get_partner_catalog_service)):
+    """
+    Updates an existing partner record.
+
+    Parameters:
+        partner (PartnerData): An object containing the details for updating the existing partner, including the existing partner's ID.
+        user_mod (str): The identifier of the user making the update.
+
+    Returns:
+        Partner: The updated partner object.
+    """
+    
+    try:
+        updated_partner = partner_catalog_service.update_partner(partner, user_mod)
+        response_content = updated_partner.serialize()
+        status_code = 200
+    except Exception as e:
+        logging.exception(e)
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to update a partner."
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
 
 
 @business_logic_router.get("/partners")
-async def get_partners(request: Request, customer_price_group: Optional[str] = None, partner_catalog_service: PartnerCatalogService = Depends(get_partner_catalog_service)):
+def get_partners(request: Request, company_code: str, partner_catalog_service: PartnerCatalogService = Depends(get_partner_catalog_service)):
     """
     Lists all the partners for a specific customer price group.
 
@@ -232,8 +310,8 @@ async def get_partners(request: Request, customer_price_group: Optional[str] = N
         This function is used to retrieve partner data from the selected customer price group to be presented as selectable options within a dropdown in the frontend.
     """
     try:
-        partners = await partner_catalog_service.get_partners(customer_price_group)
-        response_content = partners
+        partners = partner_catalog_service.get_partners(company_code)
+        response_content = serialize_list(partners)
         status_code = 200
     except Exception as e:
         logging.exception(e)
@@ -338,12 +416,13 @@ async def get_partner_configurations(request: Request, customer_price_group: str
 
 
 @business_logic_router.get("/item_groups")
-async def get_item_groups(request: Request, level:int, customer_price_group: Optional[str] = None, item_catalog_service: ItemCatalogService = Depends(get_item_catalog_service)):
+async def get_item_groups(request: Request, level:int, parent_code: Optional[str]=None, customer_price_group: Optional[str] = None, item_catalog_service: ItemCatalogService = Depends(get_item_catalog_service)):
     """
     Lists all the item groups of the specified level in the product hierarchy for a specific customer price group.
 
     Parameters:
         level (int): The level of the item groups to retrieve (1 or 2).
+        parent_code (Optional[str]): If level is 2, only groups of level 2 asociated with the specified parent group of level 1 will be returned. If omitted, all groups of level 2 will be returned.
         customer_price_group (Optional[str]): The identifier for the customer price group to filter the item groups (default is None).
 
     Returns:
@@ -352,20 +431,11 @@ async def get_item_groups(request: Request, level:int, customer_price_group: Opt
     Usage:
         This function is used to retrieve item groups based on their hierarchy level and customer price group to be presented as selectable options within a dropdown in the frontend.
     """
-    level_selector = {
-        1: item_catalog_service.get_item_groups_1,
-        2: item_catalog_service.get_item_groups_2,
-    }
     try:
-        if level not in level_selector:
-            response_content = {
-                "errorMessage": "Bad request",
-                "displayMessage": f"level should be one of the following: {list(level_selector.keys())}"
-            }
-            status_code = 403
-        else:
-            response_content = await level_selector[level](customer_price_group)
-            status_code = 200
+        item_groups = item_catalog_service.get_item_groups(level, parent_code)
+        serialized_items = serialize_list(item_groups)
+        response_content = serialized_items
+        status_code = 200
     except Exception as e:
         response_content = {
             "errorMessage": str(e),

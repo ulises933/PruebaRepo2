@@ -18,6 +18,9 @@ class ItemConfigurationDoesNotExistError(Exception):
     def __init__(self,id:int):
         super().__init__(f"There is no item configuration with id={id}")
 
+class PartnerDoesNotExistError(Exception):
+    def __init__(self,id:int):
+        super().__init__(f"There is no partner with id={id}")
 class PartnerConfigurationDoesNotExistError(Exception):
     def __init__(self,id:int):
         super().__init__(f"There is no partner configuration with id={id}")

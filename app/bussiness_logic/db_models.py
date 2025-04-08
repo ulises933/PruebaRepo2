@@ -83,6 +83,57 @@ class AuditoriaLog(Base):
     fecha = Column(DateTime)
     detalles = Column(JSON)
 
+class Manager(Base):
+    __tablename__ = 'manager'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    full_name = Column(String, nullable=False)
+    email = Column(String, unique=True, index=True)
+    payroll_number = Column(String, unique=True)
+    personnel_number = Column(String, unique=True)
+    company_code = Column(String, nullable=False)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "full_name": self.full_name,
+            "email": self.email,
+            "payroll_number": self.payroll_number,
+            "personnel_number": self.personnel_number,
+            "company_code": self.company_code,
+        }
+
+class Partner(Base):
+    __tablename__ = 'partner'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    id_manager = Column(String, ForeignKey('manager.id'), nullable=False, index=True)
+    full_name = Column(String, nullable=False)
+    email = Column(String, unique=True, index=True)
+    payroll_number = Column(String, unique=True, index=True)
+    personnel_number = Column(String, unique=True, index=True)
+    company_code = Column(String, nullable=False)
+    profit_center = Column(String)
+    cost_center = Column(String)
+    date_created = Column(DateTime, default=datetime.utcnow)
+    last_modified_date = Column(DateTime, default=datetime.utcnow)
+    last_modified_user = Column(String)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "id_manager": self.id_manager,
+            "full_name": self.full_name,
+            "email": self.email,
+            "payroll_number": self.payroll_number,
+            "personnel_number": self.personnel_number,
+            "company_code": self.company_code,
+            "profit_center": self.profit_center,
+            "cost_center": self.cost_center,
+            "date_created": self.date_created.isoformat() if self.date_created else None,
+            "last_modified_date": self.last_modified_date.isoformat() if self.last_modified_date else None,
+            "last_modified_user": self.last_modified_user,
+        }
+
 class PartnerCommissionConfiguration(Base):
     __tablename__ = 'partner_commission_configuration'
 
@@ -109,6 +160,24 @@ class PartnerCommissionConfiguration(Base):
             "date_created": self.date_created.isoformat() if self.date_created else None,
             "last_modified_date": self.last_modified_date.isoformat() if self.last_modified_date else None,
             "last_modified_user": self.last_modified_user,
+        }
+
+class ItemGroup(Base):
+    __tablename__ = 'item_group'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(String, unique=True, nullable=False)
+    parent_code = Column(String, nullable=True)
+    hierarchy_level = Column(Integer, nullable=False)
+    description = Column(String, nullable=False)
+
+    def serialize(self):
+        return {
+            "id":self.id,
+            "code":self.code,
+            "parent_code":self.parent_code,
+            "hierarchy_level":self.hierarchy_level,
+            "description":self.description,
         }
 
 class ItemCommissionConfiguration(Base):
