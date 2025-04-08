@@ -210,4 +210,35 @@ class ItemCommissionConfiguration(Base):
             "last_modified_user": self.last_modified_user,
         }
 
+class Capturist(Base):
+    __tablename__ = "capturists"
+
+    id = Column(Integer, primary_key=True, index=True)
+    full_name = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=False)
+    payroll_number = Column(String(50), nullable=False)
+    personnel_number = Column(String(50), nullable=False)
+    company_code = Column(String(50), nullable=False)
+    is_active = Column(Boolean, default=True)
+    
+    created_at = Column(DateTime, nullable=False)
+    created_by = Column(String(50), nullable=False)
+    modified_at = Column(DateTime, nullable=False)
+    modified_by = Column(String(50), nullable=False)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "full_name": self.full_name,
+            "email": self.email,
+            "payroll_number": self.payroll_number,
+            "personnel_number": self.personnel_number,
+            "company_code": self.company_code,
+            "is_active": self.is_active,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_by": self.created_by,
+            "modified_at": self.modified_at.isoformat() if self.modified_at else None,
+            "modified_by": self.modified_by
+        }
+
 

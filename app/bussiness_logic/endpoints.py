@@ -22,6 +22,8 @@ from app.bussiness_logic.user_info_service import UserInfoService
 from app.exception import BillingDocumentOutOfBillingCycleError, BillingCycleDoesNotExistError, \
     BillingDocumentDoesNotExistError, ClosedBillingCycleError
 from app.xm_json_response import JsonOrXmlResponse
+from app.bussiness_logic.capturist_service import CapturistService, CapturistCreate, CapturistUpdate
+from app.bussiness_logic.dependencies import get_capturist_service
 
 business_logic_router = APIRouter()
 
@@ -557,3 +559,72 @@ async def get_items(request: Request, group1:str, group2:Optional[str]=None,item
         }
         status_code = 500
     return JsonOrXmlResponse(content= response_content, request=request, status_code=status_code)
+
+@business_logic_router.post("/capturist")
+async def create_capturist(
+    request: Request,
+    capturist: CapturistCreate,
+    user_mod: str,
+    capturist_service: CapturistService = Depends(get_capturist_service)
+):
+    try:
+        new_capturist = capturist_service.create_capturist(capturist, user_mod)
+        response_content = {
+            "returnData": new_capturist.serialize(),
+            "displayMessage": "Capturist created successfully"
+        }
+        status_code = 200
+    except Exception as e:
+        logging.exception(e)
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to create a capturist."
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
+
+@business_logic_router.patch("/capturist/{capturist_id}")
+async def update_capturist(
+    request: Request,
+    capturist_id: int,
+    capturist: CapturistUpdate,
+    user_mod: str,
+    capturist_service: CapturistService = Depends(get_capturist_service)
+):
+    try:
+        updated_capturist = capturist_service.update_capturist(capturist_id, capturist, user_mod)
+        response_content = {
+            "returnData": updated_capturist.serialize(),
+            "displayMessage": "Capturist updated successfully"
+        }
+        status_code = 200
+    except Exception as e:
+        logging.exception(e)
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to update the capturist."
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
+
+@business_logic_router.get("/capturists")
+async def get_capturists(
+    request: Request,
+    active_only: bool = True,
+    capturist_service: CapturistService = Depends(get_capturist_service)
+):
+    try:
+        capturists = capturist_service.get_capturists(active_only)
+        response_content = {
+            "returnData": serialize_list(capturists),
+            "displayMessage": "Capturists retrieved successfully"
+        }
+        status_code = 200
+    except Exception as e:
+        logging.exception(e)
+        response_content = {
+            "errorMessage": str(e),
+            "displayMessage": "Error when attempting to retrieve capturists."
+        }
+        status_code = 500
+    return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
