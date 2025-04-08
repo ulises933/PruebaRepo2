@@ -11,6 +11,7 @@ def capturist_service(db_session):
 def sample_capturist_data():
     return {
         "full_name": "John Doe",
+        "email": "john.doe@example.com",
         "payroll_number": "P123",
         "personnel_number": "EMP456",
         "company_code": "COMP789"
@@ -26,6 +27,7 @@ def test_create_capturist(capturist_service, sample_capturist_data):
 
     # Assert
     assert created_capturist.full_name == sample_capturist_data["full_name"]
+    assert created_capturist.email == sample_capturist_data["email"]
     assert created_capturist.payroll_number == sample_capturist_data["payroll_number"]
     assert created_capturist.personnel_number == sample_capturist_data["personnel_number"]
     assert created_capturist.company_code == sample_capturist_data["company_code"]
@@ -42,6 +44,7 @@ def test_update_capturist(capturist_service, sample_capturist_data):
     # Modify data for update
     updated_data = sample_capturist_data.copy()
     updated_data["full_name"] = "Jane Doe"
+    updated_data["email"] = "jane.doe@example.com"
     updated_data["is_active"] = False
     updated_data["id"] = created_capturist.id
 
@@ -56,6 +59,7 @@ def test_update_capturist(capturist_service, sample_capturist_data):
 
     # Assert
     assert updated_capturist.full_name == "Jane Doe"
+    assert updated_capturist.email == "jane.doe@example.com"
     assert updated_capturist.is_active == False
     assert updated_capturist.modified_by == "update_user"
     assert updated_capturist.created_by == "test_user"  # Should not change
@@ -70,7 +74,12 @@ def test_get_capturists(capturist_service, sample_capturist_data):
     
     inactive_data = sample_capturist_data.copy()
     inactive_data["full_name"] = "Inactive User"
-    inactive_capturist = capturist_service.create_capturist(CapturistCreate(**inactive_data), user_mod)
+    inactive_data["email"] = "inactive@example.com"
+    inactive_data["personnel_number"] = "EMP789"
+    inactive_capturist = capturist_service.create_capturist(
+        CapturistCreate(**inactive_data), 
+        user_mod
+    )
     
     # Make second capturist inactive
     update_data = inactive_data.copy()
@@ -104,5 +113,6 @@ def test_get_capturist(capturist_service, sample_capturist_data):
     # Assert
     assert retrieved_capturist is not None
     assert retrieved_capturist.id == created_capturist.id
+    assert retrieved_capturist.email == sample_capturist_data["email"]
     assert retrieved_capturist.full_name == sample_capturist_data["full_name"]
     assert non_existent_capturist is None 

@@ -146,6 +146,7 @@ class Capturist(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     full_name = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=False)
     payroll_number = Column(String(50), nullable=False)
     personnel_number = Column(String(50), nullable=False)
     company_code = Column(String(50), nullable=False)
@@ -160,6 +161,7 @@ class Capturist(Base):
         return {
             "id": self.id,
             "full_name": self.full_name,
+            "email": self.email,
             "payroll_number": self.payroll_number,
             "personnel_number": self.personnel_number,
             "company_code": self.company_code,

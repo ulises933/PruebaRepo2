@@ -7,6 +7,7 @@ from app.bussiness_logic.db_models import Capturist
 # Add these Pydantic models at the top of the file
 class CapturistBase(BaseModel):
     full_name: str
+    email: str
     payroll_number: str
     personnel_number: str
     company_code: str
@@ -28,6 +29,7 @@ class CapturistService:
         """
         db_capturist = Capturist(
             full_name=capturist.full_name,
+            email=capturist.email,
             payroll_number=capturist.payroll_number,
             personnel_number=capturist.personnel_number,
             company_code=capturist.company_code,
@@ -53,6 +55,7 @@ class CapturistService:
             raise ValueError(f"Capturist with id {capturist_id} not found")
 
         db_capturist.full_name = capturist.full_name
+        db_capturist.email = capturist.email
         db_capturist.payroll_number = capturist.payroll_number
         db_capturist.personnel_number = capturist.personnel_number
         db_capturist.company_code = capturist.company_code

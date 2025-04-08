@@ -30,6 +30,7 @@ def db_session_for_test(db_session):
 def sample_capturist_data():
     return {
         "full_name": "John Doe",
+        "email": "john.doe@example.com",
         "payroll_number": "P123",
         "personnel_number": "EMP456",
         "company_code": "COMP789"
@@ -52,7 +53,9 @@ def test_create_capturist(client, sample_capturist_data, db_session_for_test):
     data = response.json()
     assert "data" in data
     assert "returnData" in data["data"]
-    assert "displayMessage" in data["data"]
+    assert data["data"]["returnData"]["full_name"] == sample_capturist_data["full_name"]
+    assert data["data"]["returnData"]["email"] == sample_capturist_data["email"]
+    assert data["data"]["returnData"]["is_active"] == True
     
     # Assert database state
     new_count = db_session_for_test.query(Capturist).count()
@@ -62,7 +65,7 @@ def test_create_capturist(client, sample_capturist_data, db_session_for_test):
         personnel_number=sample_capturist_data["personnel_number"]
     ).first()
     assert created_capturist is not None
-    assert created_capturist.full_name == sample_capturist_data["full_name"]
+    assert created_capturist.email == sample_capturist_data["email"]
     assert created_capturist.created_by == user_mod
     
     return data["data"]["returnData"]
