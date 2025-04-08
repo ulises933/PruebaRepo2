@@ -50,7 +50,7 @@ class CapturistService:
         """
         Updates an existing capturist in the database.
         """
-        db_capturist = self.db.query(Capturist).filter(Capturist.id == capturist_id).first()
+        db_capturist = self.db.query(Capturist).get(capturist_id)
         if not db_capturist:
             raise ValueError(f"Capturist with id {capturist_id} not found")
 
@@ -81,4 +81,4 @@ class CapturistService:
         """
         Retrieves a specific capturist by ID.
         """
-        return self.db.query(Capturist).filter(Capturist.id == capturist_id).first() 
+        return self.db.query(Capturist).get(capturist_id)
