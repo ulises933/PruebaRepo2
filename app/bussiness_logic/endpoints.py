@@ -287,7 +287,7 @@ def update_partner(request:Request, partner: PartnerData, user_mod: str, partner
         logging.exception(e)
         response_content = {
             "errorMessage": str(e),
-            "displayMessage": "Error when attempting to create a partner."
+            "displayMessage": "Error when attempting to update a partner."
         }
         status_code = 500
     return JsonOrXmlResponse(content=response_content, request=request, status_code=status_code)
@@ -429,20 +429,6 @@ async def get_item_groups(request: Request, level:int, parent_code: Optional[str
     Usage:
         This function is used to retrieve item groups based on their hierarchy level and customer price group to be presented as selectable options within a dropdown in the frontend.
     """
-    #level_selector = {
-    #    1: item_catalog_service.get_item_groups_1,
-    #    2: item_catalog_service.get_item_groups_2,
-    #}
-    #try:
-    #    if level not in level_selector:
-    #        response_content = {
-    #            "errorMessage": "Bad request",
-    #            "displayMessage": f"level should be one of the following: {list(level_selector.keys())}"
-    #        }
-    #        status_code = 403
-    #    else:
-    #        response_content = await level_selector[level](customer_price_group)
-    #        status_code = 200
     try:
         item_groups = item_catalog_service.get_item_groups(level, parent_code)
         serialized_items = serialize_list(item_groups)

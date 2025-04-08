@@ -41,7 +41,6 @@ class ItemCatalogService:
             async with aiohttp.ClientSession() as session:
                 async with session.post(self.item_api_url, 
                                      headers=headers, 
-                                     #json=payload
                                      ) as response:
                     if response.status == 200:
                         json_response = await response.json()
@@ -68,12 +67,6 @@ class ItemCatalogService:
 
     async def get_items_in_group(self, group1:str, group2:Optional[str]=None, language: Optional[str]= "EN") -> List[Dict[str,str]]:
         hierarchy = f"{group1}{group2 if group2 is not None else ''}"
-        #items = await self.fetch_items()
-        #filtered_items = [
-        #    item
-        #    for item in items
-        #    if item.ProductHierarchy.startswith(hierarchy) and item.Language == language
-        #]
         items_set = set()
         billing_documents = await self.fetch_billing_documents_from_sap()
 
